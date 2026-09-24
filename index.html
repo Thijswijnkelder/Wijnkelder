@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Chart.js voor de waarde-evolutie grafiek -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Leaflet JS voor de interactieve wereldkaart -->
+    <!-- Leaflet JS voor de wereldkaart -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -209,29 +209,30 @@
             max-width: 180px;
         }
 
-        .timeline-card {
+        /* Filter Blokken Styling (voor wijnkelder tab) */
+        .filter-section-card {
             background: var(--card-bg);
             border-radius: 12px;
             border: 1px solid var(--border);
-            padding: 16px;
-            margin-bottom: 20px;
+            padding: 14px 16px;
+            margin-bottom: 15px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
-        .timeline-title {
+        .filter-section-title {
             font-family: 'Playfair Display', serif;
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: var(--primary);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .timeline-bars {
+        .filter-blocks-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
             gap: 8px;
         }
-        .t-bar-item {
+        .filter-block-item {
             background: var(--bg);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -240,54 +241,20 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .t-bar-item:hover, .t-bar-item.active {
+        .filter-block-item:hover, .filter-block-item.active {
             border-color: var(--primary);
             background: #F7E9EA;
         }
-        .t-year {
+        .f-block-label {
             font-size: 0.75rem;
             color: var(--accent);
             font-weight: bold;
-            text-transform: uppercase;
         }
-        .t-count {
+        .f-block-sub {
             font-family: 'Playfair Display', serif;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--primary);
             margin-top: 2px;
-        }
-
-        .filters {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-            scrollbar-width: none;
-        }
-        .filters::-webkit-scrollbar { display: none; }
-        .filter-btn {
-            background: transparent;
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s ease;
-        }
-        .filter-btn.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        .filter-btn.pair-btn {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-        .filter-btn.pair-btn.active {
-            background: var(--primary);
-            color: #fff;
         }
 
         .controls {
@@ -599,7 +566,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.2</span>
+        <span class="version-tag">v3.3</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -632,7 +599,7 @@
             <button class="btn-add" style="width: 100%; padding: 14px; font-size: 1rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
         </div>
 
-        <!-- Rood / Wit / Mousserend Verdelingsblokken (Zonder filter) -->
+        <!-- Rood / Wit / Mousserend Verdelingsblokken -->
         <div class="dash-card" style="margin-bottom: 20px;">
             <div class="dash-title">📊 Verdeling Wijnsoorten</div>
             <div id="home-type-bars"></div>
@@ -649,9 +616,9 @@
             </div>
         </div>
 
-        <!-- Wereldkaart met regio's -->
+        <!-- Wereldkaart (Schetsmatige stijl) -->
         <div class="map-card">
-            <div class="dash-title">🌍 Wijnregio's op de Wereldkaart</div>
+            <div class="dash-title">🌍 Wijnregio's op de Kaart</div>
             <div id="wineMap"></div>
         </div>
 
@@ -666,26 +633,58 @@
 
     <!-- WIJNKELDER TABBLAD -->
     <div id="view-cellar" style="display: none;">
-        <!-- Filters -->
-        <div class="filters">
-            <button class="filter-btn active" id="btn-ALL" onclick="setFilter('ALL')">Alles</button>
-            <button class="filter-btn" id="btn-ROOD" onclick="setFilter('ROOD')">🔴 Rood</button>
-            <button class="filter-btn" id="btn-WIT" onclick="setFilter('WIT')">⚪ Wit</button>
-            <button class="filter-btn" id="btn-MOUSSEREND" onclick="setFilter('MOUSSEREND')">🟡 Mousserend</button>
-            <button class="filter-btn pair-btn" id="btn-PAIR_SPECIAL" onclick="setFilter('PAIR_SPECIAL')">🥂 Feestelijk (&gt; €25)</button>
+        <!-- Filters in mooie blokken -->
+        <div class="filter-section-card">
+            <div class="filter-section-title">
+                <span>🍇 Type Wijn</span>
+                <span style="font-size: 0.75rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset</span>
+            </div>
+            <div class="filter-blocks-grid">
+                <div class="filter-block-item active" id="fblock-ALL" onclick="setFilter('ALL')">
+                    <div class="f-block-label">Alles</div>
+                    <div class="f-block-sub">🍾</div>
+                </div>
+                <div class="filter-block-item" id="fblock-ROOD" onclick="setFilter('ROOD')">
+                    <div class="f-block-label">Rood</div>
+                    <div class="f-block-sub">🔴</div>
+                </div>
+                <div class="filter-block-item" id="fblock-WIT" onclick="setFilter('WIT')">
+                    <div class="f-block-label">Wit</div>
+                    <div class="f-block-sub">⚪</div>
+                </div>
+                <div class="filter-block-item" id="fblock-MOUSSEREND" onclick="setFilter('MOUSSEREND')">
+                    <div class="f-block-label">Mousserend</div>
+                    <div class="f-block-sub">🟡</div>
+                </div>
+                <div class="filter-block-item" id="fblock-PAIR_SPECIAL" onclick="setFilter('PAIR_SPECIAL')">
+                    <div class="f-block-label">Feestelijk</div>
+                    <div class="f-block-sub">🥂 &gt;€25</div>
+                </div>
+            </div>
         </div>
 
-        <div class="filters">
-            <button class="filter-btn" id="btn-NU" onclick="setFilter('NU')">🍷 Op Dronk</button>
-            <button class="filter-btn" id="btn-BEWAREN" onclick="setFilter('BEWAREN')">⏳ Bewaren</button>
-            <button class="filter-btn" id="btn-VERLEDEN" onclick="setFilter('VERLEDEN')">⚠️ Piek voorbij</button>
+        <div class="filter-section-card">
+            <div class="filter-section-title"><span>🍷 Drinkstatus</span></div>
+            <div class="filter-blocks-grid">
+                <div class="filter-block-item" id="fblock-NU" onclick="setFilter('NU')">
+                    <div class="f-block-label">Op Dronk</div>
+                    <div class="f-block-sub">🍷</div>
+                </div>
+                <div class="filter-block-item" id="fblock-BEWAREN" onclick="setFilter('BEWAREN')">
+                    <div class="f-block-label">Bewaren</div>
+                    <div class="f-block-sub">⏳</div>
+                </div>
+                <div class="filter-block-item" id="fblock-VERLEDEN" onclick="setFilter('VERLEDEN')">
+                    <div class="f-block-label">Piek Voorbij</div>
+                    <div class="f-block-sub">⚠️</div>
+                </div>
+            </div>
         </div>
 
-        <!-- Rijpingskalender verplaatst naar Wijnkelder als filter -->
-        <div class="timeline-card" style="margin-top: 15px;">
-            <div class="timeline-title">
-                <span>📅 Rijpingskalender (Klik op piekjaar om te filteren)</span>
-                <span style="font-size: 0.8rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset filter</span>
+        <!-- Rijpingskalender als filterblokken -->
+        <div class="filter-section-card">
+            <div class="filter-section-title">
+                <span>📅 Rijpingskalender (Piekjaar)</span>
             </div>
             <div class="timeline-bars" id="cellar-timeline-bars"></div>
         </div>
@@ -747,11 +746,11 @@
                     </div>
                     <div class="form-group">
                         <label>Regio</label>
-                        <input type="text" id="new-region" placeholder="Bijv. Jumilla">
+                        <input type="text" id="new-region" placeholder="Bijv. Moezel of Piëmonte">
                     </div>
                     <div class="form-group">
                         <label>Druivenras</label>
-                        <input type="text" id="new-grape" placeholder="Bijv. Chardonnay">
+                        <input type="text" id="new-grape" placeholder="Bijv. Riesling">
                     </div>
                     <div class="form-group">
                         <label>Aantal Flessen</label>
@@ -806,18 +805,32 @@
         let mapInstance = null;
         let mapMarkers = [];
 
-        // Coördinaten database voor bekende wijnregio's
+        // Zeer uitgebreide coördinatenlijst inclusief Duitse wijnregio's (Moezel, Rheingau, Pfalz, etc.)
         const regionCoords = {
+            'moezel': { lat: 49.98, lng: 7.12, name: 'Moezel' },
+            'mosel': { lat: 49.98, lng: 7.12, name: 'Moezel' },
+            'rheingau': { lat: 50.00, lng: 8.00, name: 'Rheingau' },
+            'pfalz': { lat: 49.30, lng: 8.15, name: 'Pfalz' },
+            'baden': { lat: 48.50, lng: 8.00, name: 'Baden' },
+            'franken': { lat: 49.85, lng: 10.15, name: 'Franken' },
             'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte' },
             'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane' },
             'bordeaux': { lat: 44.83, lng: -0.58, name: 'Bordeaux' },
             'bourgogne': { lat: 47.05, lng: 4.83, name: 'Bourgogne' },
+            'rhône': { lat: 44.93, lng: 4.89, name: 'Rhône' },
+            'champagne': { lat: 49.25, lng: 4.03, name: 'Champagne' },
+            'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace' },
+            'sauternes': { lat: 44.55, lng: -0.39, name: 'Sauternes' },
             'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja' },
+            'ribera del duero': { lat: 41.68, lng: -3.88, name: 'Ribera del Duero' },
+            'priorat': { lat: 41.13, lng: 0.82, name: 'Priorat' },
+            'rías baixas': { lat: 42.43, lng: -8.64, name: 'Rías Baixas' },
             'jumilla': { lat: 38.47, lng: -1.33, name: 'Jumilla' },
             'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta' },
             'veneto': { lat: 45.43, lng: 10.98, name: 'Veneto' },
+            'trentino': { lat: 46.06, lng: 11.12, name: 'Trentino-Alto Adige' },
+            'abruzzen': { lat: 42.35, lng: 13.39, name: 'Abruzzen' },
             'sicilië': { lat: 37.59, lng: 14.01, name: 'Sicilië' },
-            'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace' },
             'douro': { lat: 41.15, lng: -7.55, name: 'Douro' },
             'napa': { lat: 38.29, lng: -122.28, name: 'Napa Valley' }
         };
@@ -1112,7 +1125,7 @@
                 vivino: vivinoVal ? parseFloat(vivinoVal) : null
             };
 
-closeModal();
+            closeModal();
 
             if (editId) {
                 let wine = localWines.find(w => w.id == editId);
@@ -1144,7 +1157,6 @@ closeModal();
 
             updateAllViews();
 
-            // Als we naar home gaan en de kaart bestaat, even hertekenen zodat Leaflet niet verspringt
             if (tab === 'home' && mapInstance) {
                 setTimeout(() => mapInstance.invalidateSize(), 200);
             }
@@ -1152,17 +1164,19 @@ closeModal();
 
         function setFilter(filter) {
             currentFilter = filter;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.t-bar-item').forEach(item => item.classList.remove('active'));
+            
+            // Highlight de juiste filter-blokken
+            document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById('fblock-' + filter);
+            if (activeEl) activeEl.classList.add('active');
 
+            document.querySelectorAll('.t-bar-item').forEach(item => item.classList.remove('active'));
             if (filter.startsWith('PEAK_')) {
                 const year = filter.replace('PEAK_', '');
                 const el = document.getElementById('t-bar-' + year);
                 if (el) el.classList.add('active');
-            } else {
-                const btn = document.getElementById('btn-' + filter);
-                if (btn) btn.classList.add('active');
             }
+
             renderCellar();
         }
 
@@ -1186,7 +1200,7 @@ closeModal();
             const avg = totalB > 0 ? (totalV / totalB) : 0;
             document.getElementById('home-avg-value').innerText = '€ ' + avg.toFixed(2).replace('.', ',');
 
-            // Verdeling Rood / Wit / Mousserend (zonder filter)
+            // Verdeling Rood / Wit / Mousserend
             const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
             activeWines.forEach(w => { if (counts[w.type] !== undefined) counts[w.type] += w.qty; });
             const barsContainer = document.getElementById('home-type-bars');
@@ -1240,7 +1254,7 @@ closeModal();
                 });
             }
 
-            // Render Wereldkaart
+            // Render Schetsmatige Wereldkaart
             renderMap(activeWines);
 
             // Grafiek updaten
@@ -1249,22 +1263,20 @@ closeModal();
 
         function renderMap(activeWines) {
             if (!mapInstance) {
-                mapInstance = L.map('wineMap', { zoomControl: false }).setView([45.0, 8.0], 4);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
+                // Strakke, minimalistische CartoDB Positron tegelstijl voor een schetsmatige, chique look
+                mapInstance = L.map('wineMap', { zoomControl: false, attributionControl: false }).setView([48.0, 6.0], 4);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 18
                 }).addTo(mapInstance);
             }
 
-            // Verwijder oude markers
             mapMarkers.forEach(m => mapInstance.removeLayer(m));
             mapMarkers = [];
 
-            // Groepeer flessen per regio
             const regionCounts = {};
             activeWines.forEach(w => {
                 if (!w.region) return;
                 const regLower = w.region.toLowerCase().trim();
-                // Zoek match in bekende coördinaten
                 let matchedKey = Object.keys(regionCoords).find(k => regLower.includes(k));
                 if (matchedKey) {
                     if (!regionCounts[matchedKey]) regionCounts[matchedKey] = 0;
@@ -1272,21 +1284,20 @@ closeModal();
                 }
             });
 
-            // Voeg markers toe
             Object.keys(regionCounts).forEach(key => {
                 const info = regionCoords[key];
                 const count = regionCounts[key];
                 
                 const marker = L.circleMarker([info.lat, info.lng], {
-                    radius: Math.min(8 + count * 2, 22),
+                    radius: Math.min(7 + count * 2, 20),
                     fillColor: "#722F37",
-                    color: "#fff",
+                    color: "#FAF7F2",
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 0.85
                 }).addTo(mapInstance);
 
-                marker.bindPopup(`<strong>${info.name}</strong><br>${count} fles(sen) in kelder`);
+                marker.bindPopup(`<strong>${info.name}</strong><br>${count} fles(sen)`);
                 mapMarkers.push(marker);
             });
         }
@@ -1335,7 +1346,7 @@ closeModal();
 
             let activeWines = localWines.filter(w => w.qty > 0);
 
-            // Bouw ook de rijpingskalender op tabblad Wijnkelder
+            // Rijpingskalender blokken op Wijnkelder tab
             const peakCounts = {};
             activeWines.forEach(w => {
                 const p = w.peak || new Date().getFullYear();
@@ -1345,14 +1356,14 @@ closeModal();
             const timelineContainer = document.getElementById('cellar-timeline-bars');
             timelineContainer.innerHTML = '';
             if (sortedYears.length === 0) {
-                timelineContainer.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center; grid-column:span 4;">Geen piekdata</div>';
+                timelineContainer.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center;">Geen piekdata</div>';
             } else {
                 sortedYears.forEach(year => {
                     const isSelected = (currentFilter === 'PEAK_' + year);
                     timelineContainer.innerHTML += `
-                        <div class="t-bar-item ${isSelected ? 'active' : ''}" id="t-bar-${year}" onclick="setFilter('PEAK_${year}')">
-                            <div class="t-year">${year}</div>
-                            <div class="t-count">${peakCounts[year]} 🍾</div>
+                        <div class="filter-block-item ${isSelected ? 'active' : ''}" id="t-bar-${year}" onclick="setFilter('PEAK_${year}')">
+                            <div class="f-block-label">${year}</div>
+                            <div class="f-block-sub">${peakCounts[year]} 🍾</div>
                         </div>
                     `;
                 });
