@@ -160,7 +160,7 @@
         }
 
         #wineMap {
-            height: 280px;
+            height: 300px;
             width: 100%;
             border-radius: 8px;
             border: 1px solid var(--border);
@@ -209,7 +209,7 @@
             max-width: 180px;
         }
 
-        /* Filter Blokken Styling (voor wijnkelder tab) */
+        /* Filter Blokken Styling */
         .filter-section-card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -566,7 +566,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.3</span>
+        <span class="version-tag">v3.5</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -616,9 +616,9 @@
             </div>
         </div>
 
-        <!-- Wereldkaart (Schetsmatige stijl) -->
+        <!-- Wereldkaart (Vrij van API sleutels) -->
         <div class="map-card">
-            <div class="dash-title">🌍 Wijnregio's op de Kaart</div>
+            <div class="dash-title">🌍 Wijnregio's op de Wereldkaart</div>
             <div id="wineMap"></div>
         </div>
 
@@ -716,7 +716,7 @@
             <div class="ai-search-box">
                 <label>🤖 Vraag aan AI (vrije invoer)</label>
                 <div class="ai-input-row">
-                    <input type="text" id="ai-query-input" placeholder="Bijv. Barolo Prunotto 2018 of rode wijn rond 15 euro">
+                    <input type="text" id="ai-query-input" placeholder="Bijv. Barolo Prunotto 2018 of Chileense Carmenere">
                     <button type="button" class="btn-ai" id="btn-ai-search" onclick="askGeminiAI()">Vul velden in</button>
                 </div>
             </div>
@@ -726,15 +726,15 @@
                 <div class="form-grid">
                     <div class="form-group full">
                         <label>Wijnnaam</label>
-                        <input type="text" id="new-name" required placeholder="Bijv. Bomba Chardonnay 2023">
+                        <input type="text" id="new-name" required placeholder="Bijv. Montes Alpha Carmenère">
                     </div>
                     <div class="form-group">
                         <label>Jaartal (Vintage)</label>
-                        <input type="number" id="new-vintage" placeholder="2023" oninput="autoSuggestPeak()">
+                        <input type="number" id="new-vintage" placeholder="2021" oninput="autoSuggestPeak()">
                     </div>
                     <div class="form-group">
                         <label>Producent</label>
-                        <input type="text" id="new-producer" placeholder="Bijv. Bellavista">
+                        <input type="text" id="new-producer" placeholder="Bijv. Viña Montes">
                     </div>
                     <div class="form-group">
                         <label>Type</label>
@@ -745,12 +745,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Regio</label>
-                        <input type="text" id="new-region" placeholder="Bijv. Moezel of Piëmonte">
+                        <label>Regio / Land</label>
+                        <input type="text" id="new-region" placeholder="Bijv. Colchagua Valley, Chili">
                     </div>
                     <div class="form-group">
                         <label>Druivenras</label>
-                        <input type="text" id="new-grape" placeholder="Bijv. Riesling">
+                        <input type="text" id="new-grape" placeholder="Bijv. Carmenère">
                     </div>
                     <div class="form-group">
                         <label>Aantal Flessen</label>
@@ -758,19 +758,19 @@
                     </div>
                     <div class="form-group">
                         <label>Waarde per fles (€)</label>
-                        <input type="number" id="new-value" step="0.01" value="8.50" required>
+                        <input type="number" id="new-value" step="0.01" value="14.50" required>
                     </div>
                     <div class="form-group">
                         <label>Piekjaar</label>
-                        <input type="number" id="new-peak" placeholder="Bijv. 2025" oninput="autoSuggestWindow()">
+                        <input type="number" id="new-peak" placeholder="Bijv. 2026" oninput="autoSuggestWindow()">
                     </div>
                     <div class="form-group">
                         <label>Drinkvenster</label>
-                        <input type="text" id="new-drink" placeholder="Bijv. 2024 – 2027">
+                        <input type="text" id="new-drink" placeholder="Bijv. 2024 – 2028">
                     </div>
                     <div class="form-group full">
                         <label>Vivino Score (optioneel)</label>
-                        <input type="number" id="new-vivino" step="0.1" min="1" max="5" placeholder="Bijv. 3.4">
+                        <input type="number" id="new-vivino" step="0.1" min="1" max="5" placeholder="Bijv. 4.1">
                     </div>
                 </div>
                 <div class="modal-actions">
@@ -805,34 +805,77 @@
         let mapInstance = null;
         let mapMarkers = [];
 
-        // Zeer uitgebreide coördinatenlijst inclusief Duitse wijnregio's (Moezel, Rheingau, Pfalz, etc.)
         const regionCoords = {
+            'chili': { lat: -33.45, lng: -70.66, name: 'Chili' },
+            'chile': { lat: -33.45, lng: -70.66, name: 'Chili' },
+            'maipo': { lat: -33.65, lng: -70.75, name: 'Maipo Valley (Chili)' },
+            'colchagua': { lat: -34.60, lng: -71.30, name: 'Colchagua Valley (Chili)' },
+            'casablanca': { lat: -33.32, lng: -71.40, name: 'Casablanca Valley (Chili)' },
+            'argentinië': { lat: -32.89, lng: -68.84, name: 'Argentinië' },
+            'argentina': { lat: -32.89, lng: -68.84, name: 'Argentinië' },
+            'mendoza': { lat: -32.89, lng: -68.84, name: 'Mendoza (Argentinië)' },
+            'salta': { lat: -24.78, lng: -65.41, name: 'Salta (Argentinië)' },
+            'californië': { lat: 38.29, lng: -122.28, name: 'Californië' },
+            'california': { lat: 38.29, lng: -122.28, name: 'Californië' },
+            'napa': { lat: 38.29, lng: -122.28, name: 'Napa Valley (VS)' },
+            'sonoma': { lat: 38.29, lng: -122.45, name: 'Sonoma (VS)' },
+            'oregon': { lat: 45.30, lng: -122.90, name: 'Oregon (VS)' },
+            'washington': { lat: 46.20, lng: -119.30, name: 'Washington State (VS)' },
+            'zuid-afrika': { lat: -33.93, lng: 18.86, name: 'Zuid-Afrika' },
+            'south africa': { lat: -33.93, lng: 18.86, name: 'Zuid-Afrika' },
+            'stellenbosch': { lat: -33.93, lng: 18.86, name: 'Stellenbosch (Zuid-Afrika)' },
+            'swartland': { lat: -33.35, lng: 18.70, name: 'Swartland (Zuid-Afrika)' },
+            'australië': { lat: -34.53, lng: 138.95, name: 'Australië' },
+            'australia': { lat: -34.53, lng: 138.95, name: 'Australië' },
+            'barossa': { lat: -34.53, lng: 138.95, name: 'Barossa Valley (Australië)' },
+            'mclaren': { lat: -35.21, lng: 138.54, name: 'McLaren Vale (Australië)' },
+            'nieuw-zeeland': { lat: -41.51, lng: 173.95, name: 'Nieuw-Zeeland' },
+            'new zealand': { lat: -41.51, lng: 173.95, name: 'Nieuw-Zeeland' },
+            'marlborough': { lat: -41.51, lng: 173.95, name: 'Marlborough (Nieuw-Zeeland)' },
             'moezel': { lat: 49.98, lng: 7.12, name: 'Moezel' },
             'mosel': { lat: 49.98, lng: 7.12, name: 'Moezel' },
             'rheingau': { lat: 50.00, lng: 8.00, name: 'Rheingau' },
             'pfalz': { lat: 49.30, lng: 8.15, name: 'Pfalz' },
             'baden': { lat: 48.50, lng: 8.00, name: 'Baden' },
-            'franken': { lat: 49.85, lng: 10.15, name: 'Franken' },
-            'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte' },
-            'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane' },
+            'rheinhessen': { lat: 49.80, lng: 8.20, name: 'Rheinhessen' },
+            'duitsland': { lat: 51.16, lng: 10.45, name: 'Duitsland' },
+            'germany': { lat: 51.16, lng: 10.45, name: 'Duitsland' },
+            'oostenrijk': { lat: 47.51, lng: 14.55, name: 'Oostenrijk' },
+            'austria': { lat: 47.51, lng: 14.55, name: 'Oostenrijk' },
+            'wachau': { lat: 48.38, lng: 15.42, name: 'Wachau (Oostenrijk)' },
+            'burgenland': { lat: 47.85, lng: 16.70, name: 'Burgenland (Oostenrijk)' },
             'bordeaux': { lat: 44.83, lng: -0.58, name: 'Bordeaux' },
             'bourgogne': { lat: 47.05, lng: 4.83, name: 'Bourgogne' },
+            'burgundy': { lat: 47.05, lng: 4.83, name: 'Bourgogne' },
             'rhône': { lat: 44.93, lng: 4.89, name: 'Rhône' },
             'champagne': { lat: 49.25, lng: 4.03, name: 'Champagne' },
             'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace' },
+            'sancerre': { lat: 47.33, lng: 2.83, name: 'Sancerre (Loire)' },
+            'loire': { lat: 47.25, lng: 1.50, name: 'Loire Valley' },
+            'provence': { lat: 43.50, lng: 6.00, name: 'Provence' },
             'sauternes': { lat: 44.55, lng: -0.39, name: 'Sauternes' },
-            'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja' },
-            'ribera del duero': { lat: 41.68, lng: -3.88, name: 'Ribera del Duero' },
-            'priorat': { lat: 41.13, lng: 0.82, name: 'Priorat' },
-            'rías baixas': { lat: 42.43, lng: -8.64, name: 'Rías Baixas' },
-            'jumilla': { lat: 38.47, lng: -1.33, name: 'Jumilla' },
-            'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta' },
+            'frankrijk': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
+            'france': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
+            'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte' },
+            'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane' },
+            'tuscany': { lat: 43.46, lng: 11.14, name: 'Toscane' },
             'veneto': { lat: 45.43, lng: 10.98, name: 'Veneto' },
-            'trentino': { lat: 46.06, lng: 11.12, name: 'Trentino-Alto Adige' },
-            'abruzzen': { lat: 42.35, lng: 13.39, name: 'Abruzzen' },
+            'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta' },
             'sicilië': { lat: 37.59, lng: 14.01, name: 'Sicilië' },
-            'douro': { lat: 41.15, lng: -7.55, name: 'Douro' },
-            'napa': { lat: 38.29, lng: -122.28, name: 'Napa Valley' }
+            'abruzzen': { lat: 42.35, lng: 13.39, name: 'Abruzzen' },
+            'puglia': { lat: 41.00, lng: 16.50, name: 'Puglia' },
+            'italië': { lat: 42.50, lng: 12.50, name: 'Italië' },
+            'italy': { lat: 42.50, lng: 12.50, name: 'Italië' },
+            'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja' },
+            'ribera': { lat: 41.68, lng: -3.88, name: 'Ribera del Duero' },
+            'priorat': { lat: 41.13, lng: 0.82, name: 'Priorat' },
+            'jumilla': { lat: 38.47, lng: -1.33, name: 'Jumilla' },
+            'spanje': { lat: 40.46, lng: -3.74, name: 'Spanje' },
+            'spain': { lat: 40.46, lng: -3.74, name: 'Spanje' },
+            'douro': { lat: 41.15, lng: -7.55, name: 'Douro (Portugal)' },
+            'portugal': { lat: 39.40, lng: -8.22, name: 'Portugal' },
+            'nederland': { lat: 50.84, lng: 5.68, name: 'Nederland' },
+            'limburg': { lat: 50.84, lng: 5.68, name: 'Limburg' }
         };
 
         function getHistoricalValues(currentValue) {
@@ -1165,7 +1208,6 @@
         function setFilter(filter) {
             currentFilter = filter;
             
-            // Highlight de juiste filter-blokken
             document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById('fblock-' + filter);
             if (activeEl) activeEl.classList.add('active');
@@ -1254,7 +1296,7 @@
                 });
             }
 
-            // Render Schetsmatige Wereldkaart
+            // Render Wereldkaart (OpenStreetMap open source, geen API sleutel nodig)
             renderMap(activeWines);
 
             // Grafiek updaten
@@ -1263,9 +1305,8 @@
 
         function renderMap(activeWines) {
             if (!mapInstance) {
-                // Strakke, minimalistische CartoDB Positron tegelstijl voor een schetsmatige, chique look
-                mapInstance = L.map('wineMap', { zoomControl: false, attributionControl: false }).setView([48.0, 6.0], 4);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                mapInstance = L.map('wineMap', { zoomControl: false, attributionControl: false }).setView([20.0, 0.0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 18
                 }).addTo(mapInstance);
             }
@@ -1289,7 +1330,7 @@
                 const count = regionCounts[key];
                 
                 const marker = L.circleMarker([info.lat, info.lng], {
-                    radius: Math.min(7 + count * 2, 20),
+                    radius: Math.min(7 + count * 2, 22),
                     fillColor: "#722F37",
                     color: "#FAF7F2",
                     weight: 2,
@@ -1300,6 +1341,11 @@
                 marker.bindPopup(`<strong>${info.name}</strong><br>${count} fles(sen)`);
                 mapMarkers.push(marker);
             });
+
+            if (mapMarkers.length > 0) {
+                const group = new L.featureGroup(mapMarkers);
+                mapInstance.fitBounds(group.getBounds().pad(0.3));
+            }
         }
 
         function updateChart(currentTotalValue) {
@@ -1346,7 +1392,7 @@
 
             let activeWines = localWines.filter(w => w.qty > 0);
 
-            // Rijpingskalender blokken op Wijnkelder tab
+            // Rijpingskalender blokken
             const peakCounts = {};
             activeWines.forEach(w => {
                 const p = w.peak || new Date().getFullYear();
