@@ -1213,7 +1213,6 @@
                 `;
             });
 
-            // Recente toevoegingen
             const recentWines = [...activeWines].sort((a, b) => b.id - a.id).slice(0, 3);
             const recentContainer = document.getElementById('home-recent-wines');
             recentContainer.innerHTML = recentWines.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light)">Geen wijnen</div>' : '';
@@ -1445,7 +1444,6 @@
             document.getElementById('fin-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
             document.getElementById('fin-total-bottles').innerText = totalB;
 
-            // Investering & Aantallen per Regio berekenen
             const regionInvestment = {};
             const regionCounts = {};
             activeWines.forEach(w => {
@@ -1473,7 +1471,6 @@
                 });
             }
 
-            // Rendere tweede grafiek (Aantallen per Regio %)
             updateRegionPercentageChart(regionCounts, totalB);
 
             const top10 = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 10);
