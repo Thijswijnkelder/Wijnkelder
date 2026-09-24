@@ -579,7 +579,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v1.9</span>
+        <span class="version-tag">v2.0</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -753,7 +753,8 @@
         function getGeminiKey() {
             let key = localStorage.getItem('thijs_wine_gemini_key');
             if (!key) {
-                key = prompt("Voer je Gemini API-sleutel in (deze wordt veilig opgeslagen in jouw browser en niet gedeeld op GitHub):", "AQ.Ab8RN6Kya36TEorALxs-3poL7lcfqc37OPImVPZjQ4RtjKCCVg");
+                // Je nieuwe sleutel als handige standaard prompt-waarde
+                key = prompt("Voer je Gemini API-sleutel in (deze wordt veilig opgeslagen in jouw browser en niet gedeeld op GitHub):", "AQ.Ab8RN6LkqR7F5Xuwz9034CtVRZkLhvLrXAZ5xjz_XIO2-53hgA");
                 if (key) {
                     localStorage.setItem('thijs_wine_gemini_key', key.trim());
                 }
@@ -778,22 +779,21 @@
             aiBtn.innerText = '⏳ Zoeken...';
             aiBtn.disabled = true;
 
-            const promptText = `Geef van de volgende wijn(omschrijving) exact deze gegevens terug als een valide JSON-object zonder markdown codeblokken (gewoon pure JSON):
+            const promptText = `Geef van de volgende wijn(omschrijving) exact deze gegevens terug als een valide JSON-object met dubbele aanhalingtekens om alle sleutels en string-waarden (geen markdown codeblokken eromheen, pure JSON):
             Omschrijving: "${queryText}"
             Velden die je moet invullen:
-            - name (string, nette volledige wijnnaam met vintage)
-            - vintage (getal, bijv. 2023)
-            - producer (string, naam van het wijnhuis)
-            - type (exact 'Rood', 'Wit' of 'Mousserend')
-            - region (string, wijnregio/land)
-            - grape (string, druivenras)
-            - value (getal, geschatte gemiddelde flesprijs in euro, bijv 8.50)
-            - peak (getal, piekjaar, bijv 2025)
-            - drink (string, drinkvenster bijv "2024 – 2027")
-            - vivino (getal, geschatte Vivino score, bijv 3.4)`;
+            - "name" (string, nette volledige wijnnaam met vintage)
+            - "vintage" (getal, bijv. 2023)
+            - "producer" (string, naam van het wijnhuis)
+            - "type" (exact 'Rood', 'Wit' of 'Mousserend')
+            - "region" (string, wijnregio/land)
+            - "grape" (string, druivenras)
+            - "value" (getal, geschatte gemiddelde flesprijs in euro, bijv 8.50)
+            - "peak" (getal, piekjaar, bijv 2025)
+            - "drink" (string, drinkvenster bijv "2024 – 2027")
+            - "vivino" (getal, geschatte Vivino score, bijv 3.4)`;
 
             try {
-                // Bijgewerkt naar het aanbevolen gemini-3.6-flash model
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
                     method: 'POST',
                     headers: { 
@@ -815,7 +815,15 @@
                 }
 
                 let textResult = data.candidates[0].content.parts[0].text;
+                
+                // Opschonen van eventuele markdown blokken of vreemde opmaak voor de telefoons
                 textResult = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
+                const firstBrace = textResult.indexOf('{');
+                const lastBrace = textResult.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    textResult = textResult.substring(firstBrace, lastBrace + 1);
+                }
+
                 const info = JSON.parse(textResult);
 
                 if (info.name) document.getElementById('new-name').value = info.name;
