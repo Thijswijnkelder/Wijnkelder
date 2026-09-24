@@ -1,437 +1,1407 @@
 <!DOCTYPE html>
-<html lang="nl" class="dark">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cantina Casa Schelling - Wijnkelder Dashboard</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        amber: {
-                            400: '#fbbf24',
-                            500: '#f59e0b',
-                            600: '#d97706',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Supabase JS Client -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cantina di Casa Schelling - Wijnkelder van Thijs</title>
+    
+    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- FontAwesome voor iconen -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col justify-between">
+    <!-- Chart.js voor grafieken -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet JS voor de wereldkaart -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Header & Navigatie -->
-    <header class="bg-zinc-900/80 backdrop-blur border-b border-zinc-800 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl">🍷</span>
-                <h1 class="text-xl font-bold tracking-wider text-amber-500 uppercase">Cantina Casa Schelling</h1>
-            </div>
-            <nav class="flex flex-wrap gap-2 justify-center">
-                <button onclick="switchTab('home')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-amber-600 text-white transition shadow-md" data-tab="home">
-                    <i class="fa-solid fa-house mr-1.5"></i> Home
-                </button>
-                <button onclick="switchTab('kelder')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition" data-tab="kelder">
-                    <i class="fa-solid fa-wine-bottle mr-1.5"></i> De Kelder
-                </button>
-                <button onclick="switchTab('notities')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition" data-tab="notities">
-                    <i class="fa-solid fa-book-open mr-1.5"></i> Notities
-                </button>
-                <button onclick="switchTab('wijnspijs')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition" data-tab="wijnspijs">
-                    <i class="fa-solid fa-utensils mr-1.5"></i> Wijn-Spijs
-                </button>
-                <button onclick="switchTab('waarde')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition" data-tab="waarde">
-                    <i class="fa-solid fa-chart-line mr-1.5"></i> Portefeuille & Waarde
-                </button>
-            </nav>
-        </div>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap');
+
+        :root {
+            --bg: #F5F2EB;
+            --card-bg: #FFFFFF;
+            --primary: #5A1827;
+            --accent: #7A6553;
+            --text: #1D1D1F;
+            --text-light: #86868B;
+            --border: #E3DDD0;
+            --star: #C5A059;
+            --radius-apple: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 24px 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: var(--accent);
+            font-size: 1.05rem;
+            margin-top: 4px;
+        }
+
+        .version-tag {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            background: rgba(0,0,0,0.04);
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* Tabs */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            background: rgba(0,0,0,0.04);
+            padding: 4px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+            gap: 4px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-light);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 16px 12px;
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+        .stat-val {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.45rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .stat-lbl {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-light);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .dashboard-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-section { grid-template-columns: 1fr; }
+        }
+
+        .dash-card, .chart-card, .map-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+        .dash-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.95rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        #wineMap {
+            height: 280px;
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            z-index: 1;
+        }
+
+        .type-bar-container { margin-bottom: 8px; padding: 2px; }
+        .type-bar-lbl {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .type-bar-bg { background: rgba(0,0,0,0.04); height: 6px; border-radius: 3px; overflow: hidden; }
+        .type-bar-fill { height: 100%; border-radius: 3px; }
+        .fill-rood { background: var(--primary); }
+        .fill-wit { background: var(--accent); }
+        .fill-mousserend { background: var(--star); }
+
+        .top-wine-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .top-wine-item:last-child { border-bottom: none; }
+        .top-wine-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; font-weight: 500; }
+
+        /* Filterblokken (Multi-select) */
+        .filter-section-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .filter-section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .filter-blocks-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+        .filter-blocks-row::-webkit-scrollbar { display: none; }
+
+        .filter-block-item {
+            background: rgba(0,0,0,0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 75px;
+            flex-shrink: 0;
+        }
+        .filter-block-item:hover { background: rgba(90,24,39,0.03); }
+        .filter-block-item.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #FFF;
+        }
+        .filter-block-item.active .f-block-label { color: rgba(255,255,255,0.8); }
+        .filter-block-item.active .f-block-sub { color: #FFF; }
+
+        .f-block-label {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            font-weight: 600;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .f-block-sub {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.95rem;
+            color: var(--primary);
+            margin-top: 1px;
+        }
+        .filter-block-item.active .f-block-sub { color: #FFF; }
+
+        .controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: var(--card-bg);
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,24,39,0.08); }
+        
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            box-shadow: 0 4px 12px rgba(90,24,39,0.15);
+        }
+
+        .backup-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-backup {
+            flex: 1;
+            background: rgba(0,0,0,0.02);
+            border: 1px solid var(--border);
+            color: var(--primary);
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-backup:hover { border-color: var(--primary); background: rgba(90,24,39,0.03); }
+
+        /* Wijnkaart Layout */
+        .wine-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .wine-label-thumb {
+            width: 60px;
+            height: 85px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #EDE8DF;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .wine-card-content { flex: 1; min-width: 0; }
+
+        .wine-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+        .wine-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: 600;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+        .wine-title:hover { opacity: 0.8; }
+
+        .badge-group { display: flex; gap: 6px; align-items: center; }
+        .badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+        .badge-rood { background: rgba(90,24,39,0.08); color: var(--primary); }
+        .badge-wit { background: rgba(122,101,83,0.1); color: var(--accent); }
+        .badge-mousserend { background: rgba(197,160,89,0.12); color: #8A6D3B; }
+        .badge-vivino { background: rgba(0,0,0,0.04); color: var(--text); font-weight: 600; }
+
+        .wine-sub { font-size: 0.85rem; color: var(--text-light); margin-bottom: 12px; font-style: italic; }
+
+        .wine-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            border-top: 1px solid rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            padding: 12px 0;
+            margin-bottom: 12px;
+        }
+        .info-pill {
+            background: rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+        .info-pill span.lbl {
+            color: var(--text-light);
+            display: block;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+        .info-pill span.val {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .status-nu { color: var(--accent); }
+        .status-bewaren { color: #A67C00; }
+        .status-verleden { color: var(--primary); }
+
+        .rating-notes-box {
+            background: rgba(0,0,0,0.015);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.03);
+            margin-bottom: 12px;
+        }
+        .star-rating { display: flex; gap: 4px; font-size: 1.1rem; color: #D1CDC4; cursor: pointer; margin-bottom: 4px; }
+        .star-rating .star.active { color: var(--star); }
+        .notes-input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            background: #FFF;
+            resize: vertical;
+            outline: none;
+        }
+        .notes-input:focus { border-color: var(--primary); }
+
+        .wine-foot { display: flex; justify-content: space-between; align-items: center; }
+        .total-waarde { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--primary); font-weight: 600; }
+
+        .card-actions-right { display: flex; align-items: center; gap: 10px; }
+        .btn-edit-small {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-edit-small:hover { border-color: var(--primary); color: var(--primary); }
+
+        .qty-box { display: flex; align-items: center; gap: 10px; }
+        .btn-qty {
+            width: 32px; height: 32px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--primary);
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+            z-index: 100; justify-content: center; align-items: center; padding: 16px;
+        }
+        .modal {
+            background: var(--card-bg); width: 100%; max-width: 480px;
+            border-radius: 20px; padding: 24px; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.04);
+        }
+        .modal h2 {
+            font-family: 'Playfair Display', serif; color: var(--primary);
+            margin-bottom: 16px; border-bottom: 1px solid var(--border);
+            padding-bottom: 10px; font-size: 1.4rem;
+        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group.full { grid-column: span 2; }
+        .form-group label {
+            display: block; font-size: 0.7rem; color: var(--text-light);
+            text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; font-weight: 600;
+        }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1px solid var(--border);
+            border-radius: 8px; font-family: inherit; background: #FAFAFA; outline: none;
+        }
+        .form-group input:focus { border-color: var(--primary); background: #FFF; }
+        
+        .ai-search-box {
+            background: rgba(90,24,39,0.03); border: 1px solid rgba(90,24,39,0.1);
+            padding: 12px; border-radius: 12px; margin-bottom: 16px;
+        }
+        .ai-search-box label { font-size: 0.75rem; font-weight: 600; color: var(--primary); text-transform: uppercase; display: block; margin-bottom: 6px; }
+        .ai-input-row { display: flex; gap: 8px; }
+        .ai-input-row input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: #FFF; }
+        .btn-ai { background: var(--primary); color: white; border: none; padding: 9px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-light); padding: 9px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .loading { text-align: center; padding: 40px; color: var(--accent); font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span class="version-tag">v3.13</span>
+        <h1>Cantina di Casa Schelling</h1>
+        <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+    <!-- Tabs -->
+    <div class="tab-nav">
+        <button class="tab-btn active" id="tab-home" onclick="switchTab('home')">Home</button>
+        <button class="tab-btn" id="tab-cellar" onclick="switchTab('cellar')">Wijnkelder</button>
+        <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">Proefnotities</button>
+    </div>
 
-        <!-- TAB 1: HOME -->
-        <section id="tab-home" class="tab-content space-y-8">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-zinc-800">
-                    <div>
-                        <h2 class="text-2xl md:text-3xl font-bold text-amber-400">Dashboard & Investeringen</h2>
-                        <p class="text-zinc-400 mt-1">Realtime overzicht van je Italiaanse en internationale wijnvoorraad.</p>
-                    </div>
-                    <div id="sync-status" class="text-xs px-3 py-1.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Verbonden met Supabase
-                    </div>
-                </div>
-                
-                <!-- Statistieken Widgets -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-                    <div class="bg-zinc-950/60 border border-zinc-800/80 p-5 rounded-xl shadow-inner">
-                        <div class="text-sm text-zinc-400 font-medium">Totaal Aantal Flessen</div>
-                        <div id="stat-totaal-flessen" class="text-3xl font-extrabold text-zinc-100 mt-2">0</div>
-                    </div>
-                    <div class="bg-zinc-950/60 border border-zinc-800/80 p-5 rounded-xl shadow-inner">
-                        <div class="text-sm text-zinc-400 font-medium">Totale Marktwaarde</div>
-                        <div id="stat-totaal-waarde" class="text-3xl font-extrabold text-amber-500 mt-2">€ 0,-</div>
-                    </div>
-                    <div class="bg-zinc-950/60 border border-zinc-800/80 p-5 rounded-xl shadow-inner">
-                        <div class="text-sm text-zinc-400 font-medium">Actieve Wijnstreken</div>
-                        <div id="stat-totaal-streken" class="text-3xl font-extrabold text-zinc-100 mt-2">0</div>
-                    </div>
-                </div>
+    <!-- HOME TABBLAD -->
+    <div id="view-home">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-val" id="home-total-bottles">0</div>
+                <div class="stat-lbl">Flessen</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="home-total-value">€ 0</div>
+                <div class="stat-lbl">Marktwaarde</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="home-avg-value">€ 0</div>
+                <div class="stat-lbl">Gem. Fles</div>
+            </div>
+        </div>
 
-                <h3 class="text-xl font-semibold mb-5 text-zinc-200 flex items-center gap-2">
-                    <i class="fa-solid fa-map-location-dot text-amber-500"></i> Investering & Waarde per Wijnstreek
-                </h3>
-                <div id="regio-summary-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <!-- Dynamisch gevuld via JavaScript -->
+        <div style="margin-bottom: 20px;">
+            <button class="btn-add" style="width: 100%; padding: 14px; font-size: 0.95rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
+        </div>
+
+        <div class="dashboard-section">
+            <div class="dash-card">
+                <div class="dash-title">Verdeling Wijnsoorten</div>
+                <div id="home-type-bars"></div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-title">Zwaartepunt Regio's (Dynamisch)</div>
+                <div id="home-region-bars"></div>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <div class="dash-card">
+                <div class="dash-title">Top 3 Wijnen</div>
+                <div id="home-top-wines"></div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-title">Bocht (Vivino &lt; 3.5)</div>
+                <div id="home-bocht-wines"></div>
+            </div>
+        </div>
+
+        <!-- Wereldkaart -->
+        <div class="map-card">
+            <div class="dash-title">Wijnregio's op de Kaart (Klik voor Wijnen)</div>
+            <div id="wineMap"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="dash-title">Waardeontwikkeling Kelder (€)</div>
+            <div style="position: relative; height: 220px; width: 100%;">
+                <canvas id="valueChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dash-card" style="margin-bottom: 20px;">
+            <div class="dash-title">Backup & Gegevensbeheer</div>
+            <div style="font-size: 0.82rem; color: var(--text-light); margin-bottom: 10px;">
+                Exporteer je database voor review of importeer een eerdere backup.
+            </div>
+            <div class="backup-btn-row">
+                <button class="btn-backup" onclick="exportJSON()">Exporteer JSON</button>
+                <button class="btn-backup" onclick="exportCSV()">Exporteer Excel</button>
+                <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">Importeer JSON</button>
+            </div>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importJSON(event)">
+        </div>
+    </div>
+
+    <!-- WIJNKELDER TABBLAD -->
+    <div id="view-cellar" style="display: none;">
+        <!-- Algemene Filter Reset Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 4px;">
+            <span style="font-family: 'Playfair Display', serif; font-weight: 600; color: var(--primary);">Multi-select Filters</span>
+            <button class="btn-edit-small" onclick="resetAllFilters()" style="font-weight: 600; color: var(--primary); border-color: var(--primary);">↺ Reset alle filters</button>
+        </div>
+
+        <div class="filter-section-card">
+            <div class="filter-section-title"><span>Type Wijn</span></div>
+            <div class="filter-blocks-row">
+                <div class="filter-block-item" id="fblock-ROOD" onclick="toggleFilter('ROOD')">
+                    <div class="f-block-label">Rood</div>
+                    <div class="f-block-sub">🔴</div>
+                </div>
+                <div class="filter-block-item" id="fblock-WIT" onclick="toggleFilter('WIT')">
+                    <div class="f-block-label">Wit</div>
+                    <div class="f-block-sub">⚪</div>
+                </div>
+                <div class="filter-block-item" id="fblock-MOUSSEREND" onclick="toggleFilter('MOUSSEREND')">
+                    <div class="f-block-label">Mousserend</div>
+                    <div class="f-block-sub">🟡</div>
+                </div>
+                <div class="filter-block-item" id="fblock-PAIR_SPECIAL" onclick="toggleFilter('PAIR_SPECIAL')">
+                    <div class="f-block-label">Feestelijk</div>
+                    <div class="f-block-sub">🥂 &gt;€25</div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- TAB 2: DE KELDER -->
-        <section id="tab-kelder" class="tab-content hidden space-y-6">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-amber-400">De Kelder</h2>
-                        <p class="text-zinc-400">Volledig overzicht van alle aanwezige flessen en voorraad.</p>
-                    </div>
+        <div class="filter-section-card">
+            <div class="filter-section-title"><span>Drinkstatus</span></div>
+            <div class="filter-blocks-row">
+                <div class="filter-block-item" id="fblock-NU" onclick="toggleFilter('NU')">
+                    <div class="f-block-label">Op Dronk</div>
+                    <div class="f-block-sub">🍷</div>
                 </div>
-                <!-- Uitgebreide Kelder Tabel / Filter Component -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-zinc-800 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                                <th class="py-3 px-4">Wijn & Producent</th>
-                                <th class="py-3 px-4">Regio</th>
-                                <th class="py-3 px-4">Type</th>
-                                <th class="py-3 px-4">Drinkstatus</th>
-                                <th class="py-3 px-4">Piekjaar</th>
-                                <th class="py-3 px-4">Marktwaarde</th>
-                                <th class="py-3 px-4 text-center">Aantal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="kelder-tabel-body" class="divide-y divide-zinc-800/60 text-sm text-zinc-300">
-                            <!-- Dynamisch gevuld -->
-                        </tbody>
-                    </table>
+                <div class="filter-block-item" id="fblock-BEWAREN" onclick="toggleFilter('BEWAREN')">
+                    <div class="f-block-label">Bewaren</div>
+                    <div class="f-block-sub">⏳</div>
+                </div>
+                <div class="filter-block-item" id="fblock-VERLEDEN" onclick="toggleFilter('VERLEDEN')">
+                    <div class="f-block-label">Piek Voorbij</div>
+                    <div class="f-block-sub">⚠️</div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- TAB 3: NOTITIES -->
-        <section id="tab-notities" class="tab-content hidden space-y-6">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl">
-                <h2 class="text-2xl font-bold text-amber-400 mb-2">Notities & Proefnotities</h2>
-                <p class="text-zinc-400 mb-6">Persoonlijke aantekeningen, proefverslagen en opmerkingen bij je wijnen.</p>
-                <div id="notities-container" class="space-y-4">
-                    <!-- Dynamisch gevuld -->
+        <div class="filter-section-card">
+            <div class="filter-section-title"><span>Rijpingskalender (Piekjaar)</span></div>
+            <div class="filter-blocks-row" id="cellar-timeline-bars"></div>
+        </div>
+
+        <div class="controls" style="margin-top: 15px;">
+            <input type="text" id="search-cellar" class="search" placeholder="Zoeken op wijn, regio, druif..." oninput="renderCellar()">
+        </div>
+
+        <div id="cellar-wine-list">
+            <div class="loading">Laden van cloud-database...</div>
+        </div>
+    </div>
+
+    <!-- PROEFNOTITIES TABBLAD -->
+    <div id="view-notes" style="display: none;">
+        <div class="controls">
+            <input type="text" id="search-notes" class="search" placeholder="Zoeken in proefnotities..." oninput="renderNotes()">
+        </div>
+        <div id="notes-wine-list">
+            <div class="loading">Laden van historie...</div>
+        </div>
+    </div>
+
+    <!-- Modal Formulier -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <h2 id="modal-title">Nieuwe wijn toevoegen</h2>
+            
+            <div class="ai-search-box">
+                <label>Vraag aan AI (vrije invoer & etiket)</label>
+                <div class="ai-input-row">
+                    <input type="text" id="ai-query-input" placeholder="Bijv. Barolo Prunotto 2018">
+                    <button type="button" class="btn-ai" id="btn-ai-search" onclick="askGeminiAI()">Vul velden in</button>
                 </div>
             </div>
-        </section>
 
-        <!-- TAB 4: WIJN-SPIJS ADVISEUR -->
-        <section id="tab-wijnspijs" class="tab-content hidden space-y-6">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl">
-                <h2 class="text-2xl font-bold text-amber-400 mb-2">🍽️ Wijn-Spijs Adviseur</h2>
-                <p class="text-zinc-400 mb-6">Selecteer het type gerecht dat je gaat bereiden. De app scant direct je kelder naar wijnen die nu optimaal op dronk zijn en hier perfect bij aansluiten.</p>
-                
-                <div class="flex flex-col md:flex-row gap-4 mb-8">
-                    <select id="food-category" class="bg-zinc-950 border border-zinc-700 rounded-xl p-3.5 text-zinc-100 focus:outline-none focus:border-amber-500 flex-1 shadow-inner">
-                        <option value="all">-- Kies een gerecht / categorie --</option>
-                        <option value="rood-krachtig">Rood, krachtig (Wild, entrecote, stoofvlees, gerijpte kazen)</option>
-                        <option value="rood-soepel">Rood, soepel & fruitig (Pasta, gevogelte, charcuterie)</option>
-                        <option value="wit-fris">Wit, fris & strak (Schaal- en schelpdieren, salades)</option>
-                        <option value="wit-vol">Wit, vol & houtgerijpt (Romige pasta, gegrilde vis, gevogelte)</option>
-                        <option value="kruidig-azuur">Kruidig / Oosters (Curry's, Mexicaans met Tajín)</option>
-                    </select>
-                    <button onclick="filterWijnSpijs()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-8 py-3.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> Zoek Pairing
-                    </button>
-                </div>
-
-                <div id="wijnspijs-resultaten" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="col-span-2 text-center py-12 text-zinc-500 italic bg-zinc-950/40 rounded-xl border border-zinc-800/50">
-                        Kies een categorie hierboven om passende wijnen uit je eigen kelder te raadplegen.
+            <form onsubmit="event.preventDefault(); saveWineForm();">
+                <input type="hidden" id="edit-id">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Wijnnaam</label>
+                        <input type="text" id="new-name" required placeholder="Bijv. Montes Alpha Carmenère">
+                    </div>
+                    <div class="form-group">
+                        <label>Jaartal (Vintage)</label>
+                        <input type="number" id="new-vintage" placeholder="2021" oninput="autoSuggestPeak()">
+                    </div>
+                    <div class="form-group">
+                        <label>Producent</label>
+                        <input type="text" id="new-producer" placeholder="Bijv. Viña Montes">
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="new-type">
+                            <option value="Rood">Rood</option>
+                            <option value="Wit">Wit</option>
+                            <option value="Mousserend">Mousserend</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Regio / Land</label>
+                        <input type="text" id="new-region" placeholder="Bijv. Bordeaux, Frankrijk">
+                    </div>
+                    <div class="form-group">
+                        <label>Druivenras</label>
+                        <input type="text" id="new-grape" placeholder="Bijv. Cabernet Sauvignon">
+                    </div>
+                    <div class="form-group">
+                        <label>Aantal Flessen</label>
+                        <input type="number" id="new-qty" min="0" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Waarde per fles (€)</label>
+                        <input type="number" id="new-value" step="0.01" value="14.50" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Piekjaar</label>
+                        <input type="number" id="new-peak" placeholder="Bijv. 2026" oninput="autoSuggestWindow()">
+                    </div>
+                    <div class="form-group">
+                        <label>Drinkvenster</label>
+                        <input type="text" id="new-drink" placeholder="Bijv. 2024 – 2028">
+                    </div>
+                    <div class="form-group">
+                        <label>Vivino Score</label>
+                        <input type="number" id="new-vivino" step="0.1" min="1" max="5" placeholder="Bijv. 4.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Etiket Afbeelding URL</label>
+                        <input type="url" id="new-image" placeholder="https://...">
                     </div>
                 </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Annuleren</button>
+                    <button type="submit" class="btn-save">Opslaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Details -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal">
+            <h2 id="info-modal-title" style="color: var(--primary);">Wijn Details</h2>
+            <div id="info-modal-content" style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-save" onclick="closeInfoModal()">Sluiten</button>
             </div>
-        </section>
+        </div>
+    </div>
 
-        <!-- TAB 5: PORTEFEUILLE & WAARDEONTWIKKELING -->
-        <section id="tab-waarde" class="tab-content hidden space-y-6">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl">
-                <h2 class="text-2xl font-bold text-amber-400 mb-2">📈 Portefeuille & Waardeontwikkeling</h2>
-                <p class="text-zinc-400 mb-8">Diepgaand financieel overzicht op basis van actuele marktwaarden en piekjaar-prognoses.</p>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Top Waardevolle Flessen -->
-                    <div class="bg-zinc-950/60 border border-zinc-800/80 p-6 rounded-xl shadow-inner">
-                        <h3 class="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-trophy text-amber-500"></i> Top 5 Waardevolste Flessen
-                        </h3>
-                        <ul id="top-waardevolle-flessen" class="space-y-3">
-                            <!-- Dynamisch gevuld -->
-                        </ul>
-                    </div>
-
-                    <!-- Drinkvenster / Piekjaar Verdeling -->
-                    <div class="bg-zinc-950/60 border border-zinc-800/80 p-6 rounded-xl shadow-inner">
-                        <h3 class="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-hourglass-half text-amber-500"></i> Drinkvenster & Piekjaren
-                        </h3>
-                        <div id="piekjaar-verdeling" class="space-y-3">
-                            <!-- Dynamisch gevuld -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-zinc-900/50 border-t border-zinc-800/80 py-6 text-center text-xs text-zinc-500 mt-12">
-        <p>Cantina Casa Schelling &copy; 2026 — Persoonlijk Wijnbeheersysteem</p>
-    </footer>
-
-    <!-- JavaScript Applicatielogica -->
     <script>
-        // Tab Navigatie
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
+        const SUPABASE_URL = "https://feacfvdbdbankhazfclf.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlYWNmdmRiZGJhbmtoYXpmY2xmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDYzNzksImV4cCI6MjEwNTcyMjM3OX0.QF3TMvSQoiWxwJ194gWOI6XtdhRjt-RDoQbuQ8-gazE";
 
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('bg-amber-600', 'text-white', 'shadow-md');
-                btn.classList.add('bg-zinc-800', 'text-zinc-300');
-                if(btn.getAttribute('data-tab') === tabId) {
-                    btn.classList.remove('bg-zinc-800', 'text-zinc-300');
-                    btn.classList.add('bg-amber-600', 'text-white', 'shadow-md');
-                }
-            });
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let localWines = [];
+        let activeFilters = new Set();
+        let currentTab = 'home';
+        let myChart = null;
+        let mapInstance = null;
+        let mapMarkers = [];
+
+        // Complete coördinatenlijst inclusief uitgebreide Franse en internationale wijnregio's
+        const regionCoords = {
+            'bordeaux': { lat: 44.83, lng: -0.58, name: 'Bordeaux (Frankrijk)' },
+            'bourgogne': { lat: 47.05, lng: 4.83, name: 'Bourgogne (Frankrijk)' },
+            'burgundy': { lat: 47.05, lng: 4.83, name: 'Bourgogne (Frankrijk)' },
+            'rhône': { lat: 44.93, lng: 4.89, name: 'Rhône (Frankrijk)' },
+            'champagne': { lat: 49.25, lng: 4.03, name: 'Champagne (Frankrijk)' },
+            'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace (Frankrijk)' },
+            'sancerre': { lat: 47.33, lng: 2.83, name: 'Sancerre (Loire)' },
+            'loire': { lat: 47.25, lng: 1.50, name: 'Loire (Frankrijk)' },
+            'provence': { lat: 43.50, lng: 6.00, name: 'Provence (Frankrijk)' },
+            'sauternes': { lat: 44.55, lng: -0.39, name: 'Sauternes (Frankrijk)' },
+            'frankrijk': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
+            'france': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
+            'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte (Italië)' },
+            'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane (Italië)' },
+            'tuscany': { lat: 43.46, lng: 11.14, name: 'Toscane (Italië)' },
+            'veneto': { lat: 45.43, lng: 10.98, name: 'Veneto (Italië)' },
+            'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta (Italië)' },
+            'sicilië': { lat: 37.59, lng: 14.01, name: 'Sicilië (Italië)' },
+            'abruzzen': { lat: 42.35, lng: 13.39, name: 'Abruzzen (Italië)' },
+            'puglia': { lat: 41.00, lng: 16.50, name: 'Puglia (Italië)' },
+            'italië': { lat: 42.50, lng: 12.50, name: 'Italië' },
+            'italy': { lat: 42.50, lng: 12.50, name: 'Italië' },
+            'chili': { lat: -33.45, lng: -70.66, name: 'Chili' },
+            'chile': { lat: -33.45, lng: -70.66, name: 'Chili' },
+            'maipo': { lat: -33.65, lng: -70.75, name: 'Maipo Valley (Chili)' },
+            'colchagua': { lat: -34.60, lng: -71.30, name: 'Colchagua Valley (Chili)' },
+            'casablanca': { lat: -33.32, lng: -71.40, name: 'Casablanca Valley (Chili)' },
+            'argentinië': { lat: -32.89, lng: -68.84, name: 'Argentinië' },
+            'mendoza': { lat: -32.89, lng: -68.84, name: 'Mendoza (Argentinië)' },
+            'californië': { lat: 38.29, lng: -122.28, name: 'Californië (VS)' },
+            'napa': { lat: 38.29, lng: -122.28, name: 'Napa Valley (VS)' },
+            'zuid-afrika': { lat: -33.93, lng: 18.86, name: 'Zuid-Afrika' },
+            'stellenbosch': { lat: -33.93, lng: 18.86, name: 'Stellenbosch (Zuid-Afrika)' },
+            'australië': { lat: -34.53, lng: 138.95, name: 'Australië' },
+            'barossa': { lat: -34.53, lng: 138.95, name: 'Barossa Valley (Australië)' },
+            'nieuw-zeeland': { lat: -41.51, lng: 173.95, name: 'Nieuw-Zeeland' },
+            'moezel': { lat: 49.98, lng: 7.12, name: 'Moezel (Duitsland)' },
+            'mosel': { lat: 49.98, lng: 7.12, name: 'Moezel (Duitsland)' },
+            'rheingau': { lat: 50.00, lng: 8.00, name: 'Rheingau (Duitsland)' },
+            'pfalz': { lat: 49.30, lng: 8.15, name: 'Pfalz (Duitsland)' },
+            'duitsland': { lat: 51.16, lng: 10.45, name: 'Duitsland' },
+            'oostenrijk': { lat: 47.51, lng: 14.55, name: 'Oostenrijk' },
+            'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja (Spanje)' },
+            'spanje': { lat: 40.46, lng: -3.74, name: 'Spanje' },
+            'douro': { lat: 41.15, lng: -7.55, name: 'Douro (Portugal)' },
+            'nederland': { lat: 50.84, lng: 5.68, name: 'Nederland' }
+        };
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localWines, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `wijnkelder_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
         }
 
-        // --- SUPABASE CONFIGURATIE & DATA INLADEN ---
-        // Vul hier je eigen Supabase URL en Key in indien gewijzigd
-        const supabaseUrl = ' jouw_supabase_url ';
-        const supabaseKey = ' jouw_supabase_anon_key ';
-        
-        let wijnData = [];
+        function exportCSV() {
+            if (localWines.length === 0) { alert('Geen wijnen om te exporteren.'); return; }
+            const headers = ["id", "name", "vintage", "producer", "type", "region", "grape", "qty", "value", "peak", "drink", "vivino", "rating", "notes", "image_url"];
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(";") + "\n";
+            localWines.forEach(w => {
+                const row = headers.map(h => {
+                    let val = w[h] !== undefined && w[h] !== null ? String(w[h]) : "";
+                    if (val.includes(';') || val.includes('"') || val.includes('\n')) val = `"${val.replace(/"/g, '""')}"`;
+                    return val;
+                });
+                csvContent += row.join(";") + "\n";
+            });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `wijnkelder_export_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
 
-        // Voorbeeld/Fallback dataset inclusief jouw wijnen om de app direct robuust te laten draaien
-        const fallbackWijnData = [
-            { naam: "Barolo Monfortino", regio: "Piëmont", type: "rood-krachtig", drinkstatus: "Op Dronk", piekjaar: 2026, marktwaarde: 250, aantal: 2, notitie: "Prachtige complexe neus, schitterend potentieel." },
-            { naam: "Brunello di Montalcino", regio: "Toscane", type: "rood-krachtig", drinkstatus: "Op Dronk", piekjaar: 2027, marktwaarde: 65, aantal: 4, notitie: "Klassieke stijl, mooi in balans." },
-            { naam: "Les Halos de Jupiter (Costières de Nîmes)", regio: "Rhône", type: "rood-soepel", drinkstatus: "Op Dronk", piekjaar: 2026, marktwaarde: 22, aantal: 6, notitie: "Heerlijk fruitig met kenmerkende kruidigheid." },
-            { naam: "Etna Bianco", regio: "Sicilië", type: "wit-fris", drinkstatus: "Jong drinken", piekjaar: 2025, marktwaarde: 28, aantal: 3, notitie: "Mineralig en fris, perfect bij vis." }
-        ];
+        async function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('Bestand bevat geen geldige lijst.');
+                    if (confirm(`Wil je ${imported.length} wijnen inladen en synchroniseren?`)) {
+                        for (let wine of imported) {
+                            delete wine.created_at;
+                            await db.from('wines').upsert(wine);
+                        }
+                        await fetchWines();
+                        alert('Import succesvol voltooid!');
+                    }
+                } catch(err) { alert('Fout bij importeren: ' + err.message); }
+                finally { event.target.value = ''; }
+            };
+            reader.readAsText(file);
+        }
 
-        async function laadWijnGegevens() {
-            try {
-                // Als Supabase correct is geconfigureerd, haalt hij de data op:
-                // const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
-                // let { data, error } = await _supabase.from('wijnen').select('*');
-                // if (error) throw error;
-                // wijnData = data && data.length > 0 ? data : fallbackWijnData;
-                
-                wijnData = fallbackWijnData;
-            } catch (err) {
-                console.warn('Supabase verbinding kon niet worden geladen, gebruikt lokale fallback dataset.', err);
-                wijnData = fallbackWijnData;
+        function getHistoricalValues(currentValue) {
+            let history = JSON.parse(localStorage.getItem('thijs_wine_value_history') || '{}');
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            if (!history[currentMonthKey] || currentValue > history[currentMonthKey]) {
+                history[currentMonthKey] = currentValue;
+                localStorage.setItem('thijs_wine_value_history', JSON.stringify(history));
             }
-
-            // Strikte controle: Marktwaarde mag nooit leeg zijn (fallback naar aankoopprijs of standaard €15)
-            wijnData.forEach(w => {
-                if (!w.marktwaarde || w.marktwaarde <= 0) {
-                    w.marktwaarde = w.aankoopprijs || 15;
-                }
+            const monthsDef = [
+                { key: '2026-09', label: 'Sep 2026' }, { key: '2026-10', label: 'Okt 2026' },
+                { key: '2026-11', label: 'Nov 2026' }, { key: '2026-12', label: 'Dec 2026' },
+                { key: '2027-01', label: 'Jan 2027' }, { key: '2027-02', label: 'Feb 2027' },
+                { key: '2027-03', label: 'Mrt 2027' }, { key: '2027-04', label: 'Apr 2027' },
+                { key: '2027-05', label: 'Mei 2027' }, { key: '2027-06', label: 'Jun 2027' },
+                { key: '2027-07', label: 'Jul 2027' }, { key: '2027-08', label: 'Aug 2027' },
+                { key: '2027-09', label: 'Sep 2027' }, { key: '2027-10', label: 'Okt 2027' },
+                { key: '2027-11', label: 'Nov 2027' }, { key: '2027-12', label: 'Dec 2027' }
+            ];
+            let labels = [], data = [], lastKnownValue = currentValue * 0.9;
+            monthsDef.forEach(m => {
+                labels.push(m.label);
+                if (history[m.key] !== undefined) lastKnownValue = history[m.key];
+                else if (m.key === currentMonthKey) lastKnownValue = currentValue;
+                data.push(Math.round(lastKnownValue));
             });
-
-            renderHomeStatistieken();
-            renderKelderTabel();
-            renderNotities();
-            renderPortefeuilleWaarde();
+            return { labels, data };
         }
 
-        // 1. Home & Investering per Wijnstreek
-        function renderHomeStatistieken() {
-            let totaalFlessen = 0;
-            let totaleWaarde = 0;
-            let regioMap = {};
+        function getGeminiKey() {
+            let key = localStorage.getItem('thijs_wine_gemini_key');
+            if (!key) {
+                key = prompt("Voer je Gemini API-sleutel in:", "");
+                if (key) localStorage.setItem('thijs_wine_gemini_key', key.trim());
+            }
+            return key ? key.trim() : "";
+        }
 
-            wijnData.forEach(w => {
-                let aantal = w.aantal || 1;
-                let waardePerRegio = w.marktwaarde * aantal;
+        async function askGeminiAI() {
+            const queryText = document.getElementById('ai-query-input').value || document.getElementById('new-name').value;
+            if (!queryText) { alert('Typ eerst iets in!'); return; }
+            const apiKey = getGeminiKey();
+            if (!apiKey) return;
 
-                totaalFlessen += aantal;
-                totaleWaarde += waardePerRegio;
+            const aiBtn = document.getElementById('btn-ai-search');
+            aiBtn.innerText = '⏳ Zoeken...'; aiBtn.disabled = true;
 
-                if (!regioMap[w.regio]) {
-                    regioMap[w.regio] = { count: 0, waarde: 0 };
+            const promptText = `Geef van de volgende wijn exact deze gegevens terug als een valide JSON-object met dubbele aanhalingtekens (geen markdown). Probeer een echte werkende afbeeldings-URL of etiket-link te vinden op internet voor "image_url", anders een lege string "".
+            Omschrijving: "${queryText}"
+            - "name" (string)
+            - "vintage" (getal)
+            - "producer" (string)
+            - "type" (exact 'Rood', 'Wit' of 'Mousserend')
+            - "region" (string, bijv. Bordeaux, Frankrijk)
+            - "grape" (string)
+            - "value" (getal)
+            - "peak" (getal)
+            - "drink" (string)
+            - "vivino" (getal)
+            - "image_url" (string)`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
+                const data = await response.json();
+                let textResult = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const firstBrace = textResult.indexOf('{'), lastBrace = textResult.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) textResult = textResult.substring(firstBrace, lastBrace + 1);
+
+                const info = JSON.parse(textResult);
+                if (info.name) document.getElementById('new-name').value = info.name;
+                if (info.vintage) document.getElementById('new-vintage').value = info.vintage;
+                if (info.producer) document.getElementById('new-producer').value = info.producer;
+                if (info.type) document.getElementById('new-type').value = info.type;
+                if (info.region) document.getElementById('new-region').value = info.region;
+                if (info.grape) document.getElementById('new-grape').value = info.grape;
+                if (info.value) document.getElementById('new-value').value = info.value;
+                if (info.peak) document.getElementById('new-peak').value = info.peak;
+                if (info.drink) document.getElementById('new-drink').value = info.drink;
+                if (info.vivino) document.getElementById('new-vivino').value = info.vivino;
+                if (info.image_url) document.getElementById('new-image').value = info.image_url;
+            } catch (err) { alert('AI Fout: ' + err.message); }
+            finally { aiBtn.innerText = 'Vul velden in'; aiBtn.disabled = false; }
+        }
+
+        function autoSuggestPeak() {
+            const vintage = parseInt(document.getElementById('new-vintage').value);
+            const peakInput = document.getElementById('new-peak');
+            if (vintage && !peakInput.value) { peakInput.value = vintage + 2; autoSuggestWindow(); }
+        }
+        function autoSuggestWindow() {
+            const peakVal = parseInt(document.getElementById('new-peak').value);
+            const drinkInput = document.getElementById('new-drink');
+            if (peakVal && !drinkInput.value) drinkInput.value = `${peakVal - 1} – ${peakVal + 2}`;
+        }
+        function getEndYear(drink, peak) {
+            if (drink && drink.includes('–')) {
+                const parts = drink.split('–').map(s => parseInt(s.trim()));
+                if (parts.length === 2 && !isNaN(parts[1])) return parts[1];
+            }
+            return peak || 9999;
+        }
+        function calculateStatus(drink, peak) {
+            const currentYear = new Date().getFullYear();
+            let startYear = peak, endYear = peak;
+            if (drink && drink.includes('–')) {
+                const parts = drink.split('–').map(s => parseInt(s.trim()));
+                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) { startYear = parts[0]; endYear = parts[1]; }
+            }
+            if (currentYear < startYear) return { code: "BEWAREN", text: "Nog Bewaren", class: "status-bewaren" };
+            else if (currentYear <= endYear) return { code: "NU", text: "Op Dronk", class: "status-nu" };
+            else return { code: "VERLEDEN", text: "Piek voorbij", class: "status-verleden" };
+        }
+
+        async function fetchWines() {
+            const { data, error } = await db.from('wines').select('*').order('id', { ascending: true });
+            if (error) { console.error("Fout:", error); return; }
+            localWines = data || [];
+            updateAllViews();
+        }
+
+        async function changeQty(id, delta) {
+            let wine = localWines.find(w => w.id === id);
+            if (!wine) return;
+            wine.qty = Math.max(0, wine.qty + delta);
+            updateAllViews();
+            await db.from('wines').update({ qty: wine.qty }).eq('id', id);
+        }
+
+        async function updateRating(id, rating) {
+            let wine = localWines.find(w => w.id === id);
+            if (!wine) return;
+            wine.rating = rating;
+            updateAllViews();
+            await db.from('wines').update({ rating: rating }).eq('id', id);
+        }
+
+        async function updateNotes(id, notes) {
+            let wine = localWines.find(w => w.id === id);
+            if (!wine) return;
+            wine.notes = notes;
+            updateAllViews();
+            await db.from('wines').update({ notes: notes }).eq('id', id);
+        }
+
+        function openModal(editId = null) {
+            document.getElementById('add-modal').style.display = 'flex';
+            document.getElementById('ai-query-input').value = '';
+            if (editId) {
+                document.getElementById('modal-title').innerText = 'Wijn bewerken';
+                const wine = localWines.find(w => w.id === editId);
+                if (wine) {
+                    document.getElementById('edit-id').value = wine.id;
+                    document.getElementById('new-name').value = wine.name || '';
+                    document.getElementById('new-vintage').value = wine.vintage || '';
+                    document.getElementById('new-producer').value = wine.producer || '';
+                    document.getElementById('new-type').value = wine.type || 'Rood';
+                    document.getElementById('new-region').value = wine.region || '';
+                    document.getElementById('new-grape').value = wine.grape || '';
+                    document.getElementById('new-qty').value = wine.qty;
+                    document.getElementById('new-value').value = wine.value;
+                    document.getElementById('new-peak').value = wine.peak || '';
+                    document.getElementById('new-drink').value = wine.drink || '';
+                    document.getElementById('new-vivino').value = wine.vivino || '';
+                    document.getElementById('new-image').value = wine.image_url || '';
                 }
-                regioMap[w.regio].count += aantal;
-                regioMap[w.regio].waarde += waardePerRegio;
+            } else {
+                document.getElementById('modal-title').innerText = 'Nieuwe wijn toevoegen';
+                document.getElementById('edit-id').value = '';
+                document.querySelector('form').reset();
+            }
+        }
+
+        function closeModal() { document.getElementById('add-modal').style.display = 'none'; }
+
+        function showWineInfo(id) {
+            const wine = localWines.find(w => w.id === id);
+            if (!wine) return;
+            const statusInfo = calculateStatus(wine.drink, wine.peak);
+            document.getElementById('info-modal-title').innerText = `${wine.name} ${wine.vintage || ''}`;
+            document.getElementById('info-modal-content').innerHTML = `
+                ${wine.image_url ? `<div style="text-align:center; margin-bottom:15px;"><img src="${wine.image_url}" style="max-height:150px; border-radius:8px;" onerror="this.style.display='none'"></div>` : ''}
+                <p><strong>Producent:</strong> ${wine.producer || '-'}</p>
+                <p><strong>Type:</strong> ${wine.type}</p>
+                <p><strong>Regio:</strong> ${wine.region || '-'}</p>
+                <p><strong>Druivenras:</strong> ${wine.grape || '-'}</p>
+                <p><strong>Aantal Flessen:</strong> ${wine.qty}</p>
+                <p><strong>Waarde per fles:</strong> € ${Number(wine.value).toFixed(2).replace('.',',')}</p>
+                <p><strong>Piekjaar:</strong> ${wine.peak || '-'}</p>
+                <p><strong>Drinkvenster:</strong> ${wine.drink || '-'}</p>
+                <p><strong>Status:</strong> ${statusInfo.text}</p>
+                <p><strong>Vivino:</strong> ${wine.vivino ? '★ ' + wine.vivino : '-'}</p>
+                <p><strong>Score:</strong> ${wine.rating ? wine.rating + ' / 5 ★' : 'Geen'}</p>
+                <p><strong>Notitie:</strong> ${wine.notes || 'Geen'}</p>
+            `;
+            document.getElementById('info-modal').style.display = 'flex';
+        }
+
+        function closeInfoModal() { document.getElementById('info-modal').style.display = 'none'; }
+
+        async function saveWineForm() {
+            const editId = document.getElementById('edit-id').value;
+            const wineData = {
+                name: document.getElementById('new-name').value,
+                vintage: document.getElementById('new-vintage').value ? parseInt(document.getElementById('new-vintage').value) : null,
+                producer: document.getElementById('new-producer').value || '-',
+                type: document.getElementById('new-type').value,
+                region: document.getElementById('new-region').value || '-',
+                grape: document.getElementById('new-grape').value || '-',
+                qty: parseInt(document.getElementById('new-qty').value),
+                value: parseFloat(document.getElementById('new-value').value),
+                drink: document.getElementById('new-drink').value || '-',
+                peak: parseInt(document.getElementById('new-peak').value) || new Date().getFullYear(),
+                vivino: document.getElementById('new-vivino').value ? parseFloat(document.getElementById('new-vivino').value) : null,
+                image_url: document.getElementById('new-image').value || ''
+            };
+            closeModal();
+            if (editId) {
+                let wine = localWines.find(w => w.id == editId);
+                if (wine) { Object.assign(wine, wineData); updateAllViews(); await db.from('wines').update(wineData).eq('id', editId); }
+            } else {
+                wineData.id = Date.now(); wineData.rating = 0; wineData.notes = '';
+                localWines.push(wineData); updateAllViews(); await db.from('wines').insert([wineData]);
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-home').classList.toggle('active', tab === 'home');
+            document.getElementById('tab-cellar').classList.toggle('active', tab === 'cellar');
+            document.getElementById('tab-notes').classList.toggle('active', tab === 'notes');
+            document.getElementById('view-home').style.display = (tab === 'home') ? 'block' : 'none';
+            document.getElementById('view-cellar').style.display = (tab === 'cellar') ? 'block' : 'none';
+            document.getElementById('view-notes').style.display = (tab === 'notes') ? 'block' : 'none';
+            updateAllViews();
+            if (tab === 'home' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 200);
+        }
+
+        function toggleFilter(filter) {
+            if (activeFilters.has(filter)) activeFilters.delete(filter);
+            else activeFilters.add(filter);
+            
+            document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
+            activeFilters.forEach(f => {
+                const el = document.getElementById('fblock-' + f);
+                if (el) el.classList.add('active');
             });
+            renderCellar();
+        }
 
-            document.getElementById('stat-totaal-flessen').innerText = totaalFlessen;
-            document.getElementById('stat-totaal-waarde').innerText = `€ ${totaleWaarde.toLocaleString('nl-NL')},-`;
-            document.getElementById('stat-totaal-streken').innerText = Object.keys(regioMap).length;
+        function resetAllFilters() {
+            activeFilters.clear();
+            document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
+            renderCellar();
+        }
 
-            let container = document.getElementById('regio-summary-container');
-            container.innerHTML = '';
+        function updateAllViews() { renderHome(); renderCellar(); renderNotes(); }
 
-            for (let [regio, info] of Object.entries(regioMap)) {
-                let aandeel = totaleWaarde > 0 ? Math.round((info.waarde / totaleWaarde) * 100) : 0;
-                container.innerHTML += `
-                    <div class="bg-zinc-950/60 border border-zinc-800/80 p-5 rounded-xl flex flex-col justify-between shadow-sm hover:border-zinc-700 transition">
-                        <div>
-                            <h4 class="font-bold text-amber-400 text-lg">${regio}</h4>
-                            <p class="text-zinc-400 text-sm mt-1">Aantal flessen: <span class="text-zinc-100 font-semibold">${info.count}</span></p>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-zinc-800/80 flex justify-between items-center">
-                            <span class="text-zinc-200 font-extrabold text-base">€ ${info.waarde.toLocaleString('nl-NL')},-</span>
-                            <span class="text-xs bg-amber-500/10 text-amber-400 font-medium px-2.5 py-1 rounded-md border border-amber-500/20">${aandeel}% van totaal</span>
-                        </div>
+        function renderHome() {
+            let totalB = 0, totalV = 0;
+            const activeWines = localWines.filter(w => w.qty > 0);
+            activeWines.forEach(w => { totalB += w.qty; totalV += (w.qty * w.value); });
+
+            document.getElementById('home-total-bottles').innerText = totalB;
+            document.getElementById('home-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
+            document.getElementById('home-avg-value').innerText = '€ ' + (totalB > 0 ? (totalV / totalB) : 0).toFixed(2).replace('.', ',');
+
+            const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
+            activeWines.forEach(w => { if (counts[w.type] !== undefined) counts[w.type] += w.qty; });
+            const barsContainer = document.getElementById('home-type-bars');
+            barsContainer.innerHTML = '';
+            ['Rood', 'Wit', 'Mousserend'].forEach(t => {
+                const pct = totalB > 0 ? Math.round((counts[t] / totalB) * 100) : 0;
+                barsContainer.innerHTML += `
+                    <div class="type-bar-container">
+                        <div class="type-bar-lbl"><span><strong>${t}</strong></span><span>${counts[t]} flessen (${pct}%)</span></div>
+                        <div class="type-bar-bg"><div class="type-bar-fill fill-${t.toLowerCase()}" style="width: ${pct}%"></div></div>
                     </div>
                 `;
+            });
+
+            // Volledig dynamisch Regio/Land Zwaartepunt Diagram
+            const regionCounts = {};
+            activeWines.forEach(w => {
+                if (!w.region) return;
+                let regClean = w.region.split(',')[0].trim();
+                regionCounts[regClean] = (regionCounts[regClean] || 0) + w.qty;
+            });
+            const sortedRegions = Object.entries(regionCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            const regionBarsContainer = document.getElementById('home-region-bars');
+            regionBarsContainer.innerHTML = '';
+            if (sortedRegions.length === 0) {
+                regionBarsContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light)">Geen regio-data</div>';
+            } else {
+                sortedRegions.forEach(([reg, qty]) => {
+                    const pct = totalB > 0 ? Math.round((qty / totalB) * 100) : 0;
+                    regionBarsContainer.innerHTML += `
+                        <div class="type-bar-container">
+                            <div class="type-bar-lbl"><span><strong>${reg}</strong></span><span>${qty} flessen (${pct}%)</span></div>
+                            <div class="type-bar-bg"><div class="type-bar-fill" style="width: ${pct}%; background: var(--accent);"></div></div>
+                        </div>
+                    `;
+                });
+            }
+
+            const topWines = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 3);
+            const topContainer = document.getElementById('home-top-wines');
+            topContainer.innerHTML = topWines.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light)">Geen wijnen</div>' : '';
+            topWines.forEach((w, idx) => {
+                topContainer.innerHTML += `
+                    <div class="top-wine-item" onclick="showWineInfo(${w.id})" style="cursor:pointer;">
+                        <div class="top-wine-name"><strong>${idx + 1}.</strong> ${w.name} ${w.vintage || ''}</div>
+                        <div><strong>€ ${Number(w.value).toFixed(2).replace('.',',')}</strong></div>
+                    </div>
+                `;
+            });
+
+            const bochtWines = activeWines.filter(w => w.vivino !== null && w.vivino !== undefined && parseFloat(w.vivino) < 3.5);
+            const bochtContainer = document.getElementById('home-bocht-wines');
+            bochtContainer.innerHTML = bochtWines.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light); font-style:italic;">Geen wijnen onder 3.5</div>' : '';
+            bochtWines.forEach(w => {
+                bochtContainer.innerHTML += `
+                    <div class="top-wine-item" onclick="showWineInfo(${w.id})" style="cursor:pointer;">
+                        <div class="top-wine-name">${w.name} ${w.vintage || ''}</div>
+                        <div><strong style="color: var(--primary);">★ ${w.vivino}</strong></div>
+                    </div>
+                `;
+            });
+
+            renderMap(activeWines);
+            updateChart(totalV);
+        }
+
+        function renderMap(activeWines) {
+            if (!mapInstance) {
+                mapInstance = L.map('wineMap', { zoomControl: false, attributionControl: false }).setView([20.0, 0.0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(mapInstance);
+            }
+
+            mapMarkers.forEach(m => mapInstance.removeLayer(m));
+            mapMarkers = [];
+
+            const regionMap = {};
+            activeWines.forEach(w => {
+                if (!w.region) return;
+                const regLower = w.region.toLowerCase().trim();
+                let matchedKey = Object.keys(regionCoords).find(k => regLower.includes(k));
+                if (matchedKey) {
+                    if (!regionMap[matchedKey]) regionMap[matchedKey] = { info: regionCoords[matchedKey], wines: [] };
+                    regionMap[matchedKey].wines.push(w);
+                }
+            });
+
+            Object.keys(regionMap).forEach(key => {
+                const item = regionMap[key];
+                const totalQty = item.wines.reduce((sum, w) => sum + w.qty, 0);
+
+                let winesHtml = `<div style="max-height: 150px; overflow-y: auto; margin-top: 6px;">`;
+                item.wines.forEach(w => {
+                    winesHtml += `<div style="font-size: 0.8rem; padding: 3px 0; border-bottom: 1px dashed #eee; cursor: pointer; color: var(--primary);" onclick="showWineInfo(${w.id});">${w.name} (${w.qty}x)</div>`;
+                });
+                winesHtml += `</div>`;
+
+                const marker = L.circleMarker([item.info.lat, item.info.lng], {
+                    radius: Math.min(7 + totalQty * 2, 22),
+                    fillColor: "#5A1827", color: "#F5F2EB", weight: 2, opacity: 1, fillOpacity: 0.85
+                }).addTo(mapInstance);
+
+                marker.bindPopup(`<strong>${item.info.name}</strong> (${totalQty} flessen)${winesHtml}`);
+                mapMarkers.push(marker);
+            });
+
+            if (mapMarkers.length > 0) {
+                const group = new L.featureGroup(mapMarkers);
+                mapInstance.fitBounds(group.getBounds().pad(0.3));
             }
         }
 
-        // 2. De Kelder Tabel
-        function renderKelderTabel() {
-            let tbody = document.getElementById('kelder-tabel-body');
-            tbody.innerHTML = '';
-
-            wijnData.forEach(w => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-zinc-800/30 transition">
-                        <td class="py-3 px-4 font-medium text-zinc-100">${w.naam}</td>
-                        <td class="py-3 px-4 text-zinc-300">${w.regio}</td>
-                        <td class="py-3 px-4 text-zinc-400 text-xs">${w.type || '-'}</td>
-                        <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-emerald-950 text-emerald-400 border border-emerald-800/50">${w.drinkstatus}</span></td>
-                        <td class="py-3 px-4 text-zinc-300">${w.piekjaar}</td>
-                        <td class="py-3 px-4 text-amber-500 font-semibold">€ ${w.marktwaarde},-</td>
-                        <td class="py-3 px-4 text-center font-bold text-zinc-100">${w.aantal || 1}</td>
-                    </tr>
-                `;
+        function updateChart(currentTotalValue) {
+            const ctx = document.getElementById('valueChart').getContext('2d');
+            const historyData = getHistoricalValues(currentTotalValue);
+            if (myChart) {
+                myChart.data.labels = historyData.labels;
+                myChart.data.datasets[0].data = historyData.data;
+                myChart.update();
+                return;
+            }
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.labels,
+                    datasets: [{
+                        label: 'Kelderwaarde (€)', data: historyData.data,
+                        borderColor: '#5A1827', backgroundColor: 'rgba(90, 24, 39, 0.04)',
+                        borderWidth: 2, fill: true, tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { font: { family: 'Plus Jakarta Sans' } } }, x: { ticks: { font: { family: 'Plus Jakarta Sans' }, maxRotation: 45, minRotation: 45 } } }
+                }
             });
         }
 
-        // 3. Notities Tabblad
-        function renderNotities() {
-            let container = document.getElementById('notities-container');
+        function renderCellar() {
+            const q = document.getElementById('search-cellar').value.toLowerCase();
+            const container = document.getElementById('cellar-wine-list');
             container.innerHTML = '';
 
-            wijnData.forEach(w => {
-                if (w.notitie) {
+            let activeWines = localWines.filter(w => w.qty > 0);
+
+            const peakCounts = {};
+            activeWines.forEach(w => { const p = w.peak || new Date().getFullYear(); peakCounts[p] = (peakCounts[p] || 0) + w.qty; });
+            const sortedYears = Object.keys(peakCounts).sort((a, b) => a - b);
+            const timelineContainer = document.getElementById('cellar-timeline-bars');
+            timelineContainer.innerHTML = sortedYears.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light);">Geen piekdata</div>' : '';
+            sortedYears.forEach(year => {
+                const filterKey = 'PEAK_' + year;
+                const isSelected = activeFilters.has(filterKey);
+                timelineContainer.innerHTML += `
+                    <div class="filter-block-item ${isSelected ? 'active' : ''}" id="fblock-${filterKey}" onclick="toggleFilter('${filterKey}')">
+                        <div class="f-block-label">${year}</div>
+                        <div class="f-block-sub">${peakCounts[year]} 🍾</div>
+                    </div>
+                `;
+            });
+
+            activeWines.forEach(w => {
+                const statusInfo = calculateStatus(w.drink, w.peak);
+                let show = true;
+
+                if (activeFilters.size > 0) {
+                    let matchesAny = false;
+                    if (activeFilters.has('ROOD') && w.type === 'Rood') matchesAny = true;
+                    if (activeFilters.has('WIT') && w.type === 'Wit') matchesAny = true;
+                    if (activeFilters.has('MOUSSEREND') && w.type === 'Mousserend') matchesAny = true;
+                    if (activeFilters.has('PAIR_SPECIAL') && w.value > 25) matchesAny = true;
+                    if (activeFilters.has('NU') && statusInfo.code === 'NU') matchesAny = true;
+                    if (activeFilters.has('BEWAREN') && statusInfo.code === 'BEWAREN') matchesAny = true;
+                    if (activeFilters.has('VERLEDEN') && statusInfo.code === 'VERLEDEN') matchesAny = true;
+
+                    activeFilters.forEach(f => {
+                        if (f.startsWith('PEAK_')) {
+                            const targetYear = parseInt(f.replace('PEAK_', ''));
+                            if (w.peak === targetYear) matchesAny = true;
+                        }
+                    });
+
+                    if (!matchesAny) show = false;
+                }
+                
+                if(!`${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape}`.toLowerCase().includes(q)) show = false;
+
+                if(show) {
+                    let starsHtml = '';
+                    for (let i = 1; i <= 5; i++) {
+                        starsHtml += `<span class="star ${(w.rating >= i) ? 'active' : ''}" onclick="updateRating(${w.id}, ${i})">★</span>`;
+                    }
+
+                    const vivinoBadge = w.vivino ? `<span class="badge badge-vivino">★ ${w.vivino}</span>` : '';
+                    const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="wine-label-thumb" style="display:none;">🍷</div>` : `<div class="wine-label-thumb">🍷</div>`;
+
                     container.innerHTML += `
-                        <div class="bg-zinc-950/60 border border-zinc-800/80 p-4 rounded-xl">
-                            <div class="flex justify-between items-center mb-1">
-                                <h4 class="font-bold text-zinc-200">${w.naam}</h4>
-                                <span class="text-xs text-amber-500 font-medium">${w.regio}</span>
+                        <div class="wine-card">
+                            ${thumbHtml}
+                            <div class="wine-card-content">
+                                <div class="wine-head">
+                                    <div class="wine-title" onclick="showWineInfo(${w.id})">${w.name} ${w.vintage || ''}</div>
+                                    <div class="badge-group">
+                                        ${vivinoBadge}
+                                        <span class="badge badge-${w.type.toLowerCase()}">${w.type}</span>
+                                    </div>
+                                </div>
+                                <div class="wine-sub">${w.producer || 'Onbekende producent'}</div>
+                                
+                                <div class="wine-info-grid">
+                                    <div class="info-pill">
+                                        <span class="lbl">Regio</span>
+                                        <span class="val">${w.region || '-'}</span>
+                                    </div>
+                                    <div class="info-pill">
+                                        <span class="lbl">Druivenras</span>
+                                        <span class="val">${w.grape || '-'}</span>
+                                    </div>
+                                    <div class="info-pill">
+                                        <span class="lbl">Drinkstatus</span>
+                                        <span class="val ${statusInfo.class}">${statusInfo.text}</span>
+                                    </div>
+                                    <div class="info-pill">
+                                        <span class="lbl">Piekjaar</span>
+                                        <span class="val">${w.peak || '-'}</span>
+                                    </div>
+                                </div>
+
+                                <div class="rating-notes-box">
+                                    <span class="lbl" style="color: var(--text-light); font-size: 0.62rem; text-transform: uppercase; font-weight:600;">Beoordeling & Notitie</span>
+                                    <div class="star-rating">${starsHtml}</div>
+                                    <textarea class="notes-input" placeholder="Voeg notities toe..." onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
+                                </div>
+                                
+                                <div class="wine-foot">
+                                    <div class="total-waarde">Totaal: € ${(w.qty * w.value).toFixed(2).replace('.',',')}</div>
+                                    <div class="card-actions-right">
+                                        <button class="btn-edit-small" onclick="openModal(${w.id})">Bewerk</button>
+                                        <div class="qty-box">
+                                            <button class="btn-qty" onclick="changeQty(${w.id}, -1)">-</button>
+                                            <span style="font-size: 1rem; font-weight: 600;">${w.qty}</span>
+                                            <button class="btn-qty" onclick="changeQty(${w.id}, 1)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-sm text-zinc-400">${w.notitie}</p>
                         </div>
                     `;
                 }
             });
         }
 
-        // 4. Wijn-Spijs Adviseur
-        function filterWijnSpijs() {
-            let selectedCategory = document.getElementById('food-category').value;
-            let resultContainer = document.getElementById('wijnspijs-resultaten');
-            resultContainer.innerHTML = '';
+        function renderNotes() {
+            const q = document.getElementById('search-notes').value.toLowerCase();
+            const container = document.getElementById('notes-wine-list');
+            container.innerHTML = '';
+            const notedWines = localWines.filter(w => w.notes && w.notes.trim() !== '');
 
-            let matches = wijnData.filter(w => {
-                let isOpDronk = w.drinkstatus.toLowerCase().includes('op dronk') || w.piekjaar <= 2026;
-                let matchesType = selectedCategory === 'all' || w.type === selectedCategory;
-                return isOpDronk && matchesType;
-            });
-
-            if (matches.length === 0) {
-                resultContainer.innerHTML = `
-                    <div class="col-span-2 text-center py-10 text-zinc-400 italic bg-zinc-950/40 rounded-xl border border-zinc-800">
-                        Geen specifieke wijnen gevonden in deze categorie die momenteel optimaal op dronk zijn.
-                    </div>`;
+            if (notedWines.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-light); font-style:italic;">Nog geen proefnotities toegevoegd.</div>';
                 return;
             }
 
-            matches.forEach(w => {
-                resultContainer.innerHTML += `
-                    <div class="bg-zinc-950/60 border border-zinc-800 p-5 rounded-xl flex flex-col justify-between shadow-sm">
-                        <div>
-                            <div class="flex justify-between items-start">
-                                <h4 class="font-bold text-zinc-100 text-base">${w.naam}</h4>
-                                <span class="text-xs bg-emerald-500/10 text-emerald-400 font-medium px-2 py-0.5 rounded border border-emerald-500/20">Op Dronk</span>
+            notedWines.forEach(w => {
+                if(!`${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape} ${w.notes}`.toLowerCase().includes(q)) return;
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) starsHtml += `<span class="star ${(w.rating >= i) ? 'active' : ''}" onclick="updateRating(${w.id}, ${i})">★</span>`;
+                const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket" onerror="this.style.display='none';"><div class="wine-label-thumb" style="display:none;">🍷</div>` : `<div class="wine-label-thumb">🍷</div>`;
+
+                container.innerHTML += `
+                    <div class="wine-card">
+                        ${thumbHtml}
+                        <div class="wine-card-content">
+                            <div class="wine-head">
+                                <div class="wine-title" onclick="showWineInfo(${w.id})">${w.name} ${w.vintage || ''}</div>
+                                <div class="badge-group">${w.vivino ? `<span class="badge badge-vivino">★ ${w.vivino}</span>` : ''}</div>
                             </div>
-                            <p class="text-xs text-zinc-400 mt-1">Regio: <span class="text-zinc-200 font-medium">${w.regio}</span> | Piekjaar: <span class="text-zinc-200 font-medium">${w.piekjaar}</span></p>
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-zinc-800 flex justify-between items-center text-xs">
-                            <span class="text-zinc-400">Marktwaarde: <strong class="text-amber-500">€ ${w.marktwaarde},-</strong></span>
-                            <span class="text-zinc-500 italic">Aantal: ${w.aantal || 1} stuks</span>
+                            <div class="wine-sub">${w.producer || ''} – ${w.region || ''}</div>
+                            <div class="rating-notes-box">
+                                <span class="lbl" style="color: var(--text-light); font-size: 0.62rem; text-transform: uppercase; font-weight:600;">Score & Proefnotitie</span>
+                                <div class="star-rating">${starsHtml}</div>
+                                <textarea class="notes-input" onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
+                            </div>
                         </div>
                     </div>
                 `;
             });
         }
 
-        // 5. Portefeuille & Waardeontwikkeling
-        function renderPortefeuilleWaarde() {
-            // Top 5 duurste flessen
-            let sortedByValue = [...wijnData].sort((a, b) => b.marktwaarde - a.marktwaarde);
-            let topList = document.getElementById('top-waardevolle-flessen');
-            topList.innerHTML = '';
-
-            sortedByValue.slice(0, 5).forEach((w, index) => {
-                topList.innerHTML += `
-                    <li class="flex justify-between items-center bg-zinc-900 p-3.5 rounded-xl border border-zinc-800/80 shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <span class="w-6 text-center font-extrabold text-amber-500">#${index + 1}</span>
-                            <div>
-                                <div class="text-sm font-semibold text-zinc-200">${w.naam}</div>
-                                <div class="text-xs text-zinc-400">${w.regio}</div>
-                            </div>
-                        </div>
-                        <span class="font-bold text-zinc-100 text-sm">€ ${w.marktwaarde},-</span>
-                    </li>
-                `;
-            });
-
-            // Piekjaar indeling
-            let piekMap = {};
-            wijnData.forEach(w => {
-                let jaar = w.piekjaar || 'Onbekend';
-                if (!piekMap[jaar]) piekMap[jaar] = 0;
-                piekMap[jaar] += (w.aantal || 1);
-            });
-
-            let piekContainer = document.getElementById('piekjaar-verdeling');
-            piekContainer.innerHTML = '';
-            for (let [jaar, aantal] of Object.entries(piekMap).sort()) {
-                piekContainer.innerHTML += `
-                    <div class="flex justify-between items-center bg-zinc-900 p-3.5 rounded-xl border border-zinc-800/80 shadow-sm">
-                        <span class="text-zinc-300 font-medium text-sm">Piekjaar ${jaar}</span>
-                        <span class="bg-amber-500/10 text-amber-400 text-xs px-3 py-1 rounded-lg font-semibold border border-amber-500/20">${aantal} flessen</span>
-                    </div>
-                `;
-            }
-        }
-
-        // Applicatie initialiseren bij laden
-        window.onload = () => {
-            laadWijnGegevens();
-        };
+        db.channel('public:wines').on('postgres_changes', { event: '*', schema: 'public', table: 'wines' }, () => { fetchWines(); }).subscribe();
+        fetchWines();
     </script>
 </body>
 </html>
