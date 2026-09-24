@@ -579,7 +579,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v2.0</span>
+        <span class="version-tag">v2.1</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -749,17 +749,16 @@
         let currentFilter = 'ALL';
         let activeTab = 'active';
 
-        // Veilige opslag en ophalen van de API-sleutel via browser localStorage
+        // Veilige opslag: vraagt eenmalig om je sleutel en bewaart hem lokaal in je browser
         function getGeminiKey() {
             let key = localStorage.getItem('thijs_wine_gemini_key');
             if (!key) {
-                // Je nieuwe sleutel als handige standaard prompt-waarde
-                key = prompt("Voer je Gemini API-sleutel in (deze wordt veilig opgeslagen in jouw browser en niet gedeeld op GitHub):", "AQ.Ab8RN6LkqR7F5Xuwz9034CtVRZkLhvLrXAZ5xjz_XIO2-53hgA");
+                key = prompt("Voer je Gemini API-sleutel in (deze wordt veilig opgeslagen in jouw browser en blijft zo buiten bereik van Google's bots):", "");
                 if (key) {
                     localStorage.setItem('thijs_wine_gemini_key', key.trim());
                 }
             }
-            return key || "";
+            return key ? key.trim() : "";
         }
 
         async function askGeminiAI() {
@@ -809,6 +808,7 @@
                 
                 if (data.error) {
                     if (data.error.message.includes('authentication') || data.error.code === 400 || data.error.code === 403) {
+                        // Als de sleutel onverhoopt toch verlopen is, vragen we direct om een nieuwe
                         localStorage.removeItem('thijs_wine_gemini_key');
                     }
                     throw new Error(data.error.message || 'API Fout');
@@ -816,7 +816,7 @@
 
                 let textResult = data.candidates[0].content.parts[0].text;
                 
-                // Opschonen van eventuele markdown blokken of vreemde opmaak voor de telefoons
+                // Opschonen van eventuele markdown blokken
                 textResult = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
                 const firstBrace = textResult.indexOf('{');
                 const lastBrace = textResult.lastIndexOf('}');
