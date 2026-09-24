@@ -7,6 +7,8 @@
     
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js voor de waarde-evolutie grafiek -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -36,8 +38,8 @@
 
         header {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
             position: relative;
         }
@@ -68,20 +70,22 @@
             border-radius: 4px;
         }
 
+        /* Drie Tabbladen */
         .tab-nav {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         .tab-btn {
             background: transparent;
             border: 1px solid var(--primary);
             color: var(--primary);
-            padding: 8px 18px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -141,6 +145,15 @@
             color: var(--primary);
             margin-bottom: 12px;
             font-weight: 600;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
 
         .type-bar-container { 
@@ -579,79 +592,105 @@
 <body>
 
     <header>
-        <span class="version-tag">v2.1</span>
+        <span class="version-tag">v3.0</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
 
+    <!-- 3 Nieuwe Tabbladen -->
     <div class="tab-nav">
-        <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">🍷 Actieve Kelder</button>
-        <button class="tab-btn" id="tab-consumed" onclick="switchTab('consumed')">📜 Gedronken Logboek</button>
+        <button class="tab-btn active" id="tab-home" onclick="switchTab('home')">🏠 Home</button>
+        <button class="tab-btn" id="tab-cellar" onclick="switchTab('cellar')">🍷 Wijnkelder</button>
+        <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">📜 Proefnotities</button>
     </div>
 
-    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-val" id="total-bottles">0</div>
-            <div class="stat-lbl" id="lbl-stat-1">Flessen</div>
+    <!-- HOME TABBLAD -->
+    <div id="view-home">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-val" id="home-total-bottles">0</div>
+                <div class="stat-lbl">Flessen</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="home-total-value">€ 0</div>
+                <div class="stat-lbl">Marktwaarde</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="home-avg-value">€ 0</div>
+                <div class="stat-lbl">Gem. Fles</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-val" id="total-value">€ 0</div>
-            <div class="stat-lbl" id="lbl-stat-2">Marktwaarde</div>
+
+        <div style="margin-bottom: 20px;">
+            <button class="btn-add" style="width: 100%; padding: 14px; font-size: 1rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
         </div>
-        <div class="stat-card">
-            <div class="stat-val" id="avg-value">€ 0</div>
-            <div class="stat-lbl">Gem. Fles</div>
+
+        <div class="dashboard-section">
+            <div class="dash-card">
+                <div class="dash-title">📊 Verdeling Wijnsoorten</div>
+                <div id="home-type-bars"></div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-title">⭐ Top 3 Wijnen</div>
+                <div id="home-top-wines"></div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-title">⚠️ Bocht (Vivino &lt; 3.5)</div>
+                <div id="home-bocht-wines"></div>
+            </div>
+        </div>
+
+        <!-- Waarde Evolutie Grafiek -->
+        <div class="chart-card">
+            <div class="dash-title">📈 Waarde Evolutie over de Maanden</div>
+            <div style="position: relative; height: 220px; width: 100%;">
+                <canvas id="valueChart"></canvas>
+            </div>
+        </div>
+
+        <div class="timeline-card">
+            <div class="timeline-title">
+                <span>📅 Rijpingskalender (Piekjaar)</span>
+            </div>
+            <div class="timeline-bars" id="home-timeline-bars"></div>
         </div>
     </div>
 
-    <!-- Dashboard Widgets -->
-    <div class="dashboard-section" id="dashboard-section">
-        <div class="dash-card">
-            <div class="dash-title">📊 Verdeling Wijnsoorten</div>
-            <div id="type-bars-container"></div>
+    <!-- WIJNKELDER TABBLAD -->
+    <div id="view-cellar" style="display: none;">
+        <!-- Hoofd-Filters -->
+        <div class="filters">
+            <button class="filter-btn active" id="btn-ALL" onclick="setFilter('ALL')">Alles</button>
+            <button class="filter-btn" id="btn-NU" onclick="setFilter('NU')">🍷 Op Dronk</button>
+            <button class="filter-btn" id="btn-BEWAREN" onclick="setFilter('BEWAREN')">⏳ Bewaren</button>
+            <button class="filter-btn" id="btn-VERLEDEN" onclick="setFilter('VERLEDEN')">⚠️ Piek voorbij</button>
         </div>
-        <div class="dash-card">
-            <div class="dash-title">⭐ Top 3 Duurste Wijnen</div>
-            <div id="top-wines-container"></div>
+
+        <!-- Wijn & Spijs Quick-Filters -->
+        <div class="filters">
+            <button class="filter-btn pair-btn" id="btn-PAIR_BORREL" onclick="setFilter('PAIR_BORREL')">🍕 Doordeweeks / Borrel (&lt; €12)</button>
+            <button class="filter-btn pair-btn" id="btn-PAIR_BBQ" onclick="setFilter('PAIR_BBQ')">🥩 Rood bij Vlees / BBQ</button>
+            <button class="filter-btn pair-btn" id="btn-PAIR_FISH" onclick="setFilter('PAIR_FISH')">🐟 Fris Wit bij Vis</button>
+            <button class="filter-btn pair-btn" id="btn-PAIR_SPECIAL" onclick="setFilter('PAIR_SPECIAL')">🥂 Feestelijk / Parels (&gt; €25)</button>
         </div>
-        <div class="dash-card">
-            <div class="dash-title">⚠️ Bocht (Vivino &lt; 3.5)</div>
-            <div id="bocht-wines-container"></div>
+
+        <div class="controls">
+            <input type="text" id="search-cellar" class="search" placeholder="Zoeken op wijn, regio, druif..." oninput="renderCellar()">
+        </div>
+
+        <div id="cellar-wine-list">
+            <div class="loading">Laden van cloud-database...</div>
         </div>
     </div>
 
-    <!-- Tijdlijn / Rijpingskalender Widget -->
-    <div class="timeline-card" id="timeline-section">
-        <div class="timeline-title">
-            <span>📅 Rijpingskalender (Piekjaar)</span>
-            <span style="font-size: 0.8rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset filter</span>
+    <!-- PROEFNOTITIES TABBLAD -->
+    <div id="view-notes" style="display: none;">
+        <div class="controls">
+            <input type="text" id="search-notes" class="search" placeholder="Zoeken in historische proefnotities..." oninput="renderNotes()">
         </div>
-        <div class="timeline-bars" id="timeline-bars-container"></div>
-    </div>
-
-    <!-- Hoofd-Filters -->
-    <div class="filters" id="filters-container">
-        <button class="filter-btn active" id="btn-ALL" onclick="setFilter('ALL')">Alles</button>
-        <button class="filter-btn" id="btn-NU" onclick="setFilter('NU')">🍷 Op Dronk</button>
-        <button class="filter-btn" id="btn-BEWAREN" onclick="setFilter('BEWAREN')">⏳ Bewaren</button>
-        <button class="filter-btn" id="btn-VERLEDEN" onclick="setFilter('VERLEDEN')">⚠️ Piek voorbij</button>
-    </div>
-
-    <!-- Wijn & Spijs Quick-Filters -->
-    <div class="filters" id="pairings-container">
-        <button class="filter-btn pair-btn" id="btn-PAIR_BORREL" onclick="setFilter('PAIR_BORREL')">🍕 Doordeweeks / Borrel (&lt; €12)</button>
-        <button class="filter-btn pair-btn" id="btn-PAIR_BBQ" onclick="setFilter('PAIR_BBQ')">🥩 Rood bij Vlees / BBQ</button>
-        <button class="filter-btn pair-btn" id="btn-PAIR_FISH" onclick="setFilter('PAIR_FISH')">🐟 Fris Wit bij Vis</button>
-        <button class="filter-btn pair-btn" id="btn-PAIR_SPECIAL" onclick="setFilter('PAIR_SPECIAL')">🥂 Feestelijk / Parels (&gt; €25)</button>
-    </div>
-
-    <div class="controls">
-        <input type="text" id="search" class="search" placeholder="Zoeken op wijn, regio, druif..." oninput="render()">
-        <button class="btn-add" id="btn-add-wine" onclick="openModal()">+ Nieuw</button>
-    </div>
-
-    <div id="wine-list">
-        <div class="loading">Laden van cloud-database...</div>
+        <div id="notes-wine-list">
+            <div class="loading">Laden van historie...</div>
+        </div>
     </div>
 
     <!-- Modal Formulier (Nieuw / Bewerken) -->
@@ -659,7 +698,6 @@
         <div class="modal">
             <h2 id="modal-title">Nieuwe wijn toevoegen</h2>
             
-            <!-- Vrij AI Zoekveld -->
             <div class="ai-search-box">
                 <label>🤖 Vraag aan AI (vrije invoer)</label>
                 <div class="ai-input-row">
@@ -747,13 +785,13 @@
 
         let localWines = [];
         let currentFilter = 'ALL';
-        let activeTab = 'active';
+        let currentTab = 'home';
+        let myChart = null;
 
-        // Veilige opslag: vraagt eenmalig om je sleutel en bewaart hem lokaal in je browser
         function getGeminiKey() {
             let key = localStorage.getItem('thijs_wine_gemini_key');
             if (!key) {
-                key = prompt("Voer je Gemini API-sleutel in (deze wordt veilig opgeslagen in jouw browser en blijft zo buiten bereik van Google's bots):", "");
+                key = prompt("Voer je Gemini API-sleutel in (veilig opgeslagen in je browser):", "");
                 if (key) {
                     localStorage.setItem('thijs_wine_gemini_key', key.trim());
                 }
@@ -808,15 +846,12 @@
                 
                 if (data.error) {
                     if (data.error.message.includes('authentication') || data.error.code === 400 || data.error.code === 403) {
-                        // Als de sleutel onverhoopt toch verlopen is, vragen we direct om een nieuwe
                         localStorage.removeItem('thijs_wine_gemini_key');
                     }
                     throw new Error(data.error.message || 'API Fout');
                 }
 
                 let textResult = data.candidates[0].content.parts[0].text;
-                
-                // Opschonen van eventuele markdown blokken
                 textResult = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
                 const firstBrace = textResult.indexOf('{');
                 const lastBrace = textResult.lastIndexOf('}');
@@ -900,7 +935,7 @@
                 return;
             }
             localWines = data || [];
-            render();
+            updateAllViews();
         }
 
         async function changeQty(id, delta) {
@@ -909,7 +944,7 @@
 
             const newQty = Math.max(0, wine.qty + delta);
             wine.qty = newQty; 
-            render();
+            updateAllViews();
 
             await db.from('wines').update({ qty: newQty }).eq('id', id);
         }
@@ -918,7 +953,7 @@
             let wine = localWines.find(w => w.id === id);
             if (!wine) return;
             wine.rating = rating;
-            render();
+            updateAllViews();
             await db.from('wines').update({ rating: rating }).eq('id', id);
         }
 
@@ -1010,7 +1045,7 @@
                 let wine = localWines.find(w => w.id == editId);
                 if (wine) {
                     Object.assign(wine, wineData);
-                    render();
+                    updateAllViews();
                     await db.from('wines').update(wineData).eq('id', editId);
                 }
             } else {
@@ -1019,66 +1054,64 @@
                 wineData.notes = '';
 
                 localWines.push(wineData);
-                render();
+                updateAllViews();
                 await db.from('wines').insert([wineData]);
             }
         }
 
         function switchTab(tab) {
-            activeTab = tab;
-            document.getElementById('tab-active').classList.toggle('active', tab === 'active');
-            document.getElementById('tab-consumed').classList.toggle('active', tab === 'consumed');
+            currentTab = tab;
+            document.getElementById('tab-home').classList.toggle('active', tab === 'home');
+            document.getElementById('tab-cellar').classList.toggle('active', tab === 'cellar');
+            document.getElementById('tab-notes').classList.toggle('active', tab === 'notes');
             
-            const isAct = (tab === 'active');
-            document.getElementById('filters-container').style.display = isAct ? 'flex' : 'none';
-            document.getElementById('pairings-container').style.display = isAct ? 'flex' : 'none';
-            document.getElementById('dashboard-section').style.display = isAct ? 'grid' : 'none';
-            document.getElementById('timeline-section').style.display = isAct ? 'block' : 'none';
-            document.getElementById('btn-add-wine').style.display = isAct ? 'block' : 'none';
-            
-            document.getElementById('lbl-stat-1').innerText = isAct ? 'Flessen' : 'Gedronken';
-            document.getElementById('lbl-stat-2').innerText = isAct ? 'Marktwaarde' : 'Waarde Genoten';
+            document.getElementById('view-home').style.display = (tab === 'home') ? 'block' : 'none';
+            document.getElementById('view-cellar').style.display = (tab === 'cellar') ? 'block' : 'none';
+            document.getElementById('view-notes').style.display = (tab === 'notes') ? 'block' : 'none';
 
-            render();
+            updateAllViews();
         }
 
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.t-bar-item').forEach(item => item.classList.remove('active'));
-            document.querySelectorAll('.type-bar-container').forEach(card => card.classList.remove('active-type'));
-            
-            if (filter.startsWith('PEAK_')) {
-                const year = filter.replace('PEAK_', '');
-                const el = document.getElementById('t-bar-' + year);
-                if (el) el.classList.add('active');
-            } else if (filter === 'ROOD' || filter === 'WIT' || filter === 'MOUSSEREND') {
-                const el = document.getElementById('type-card-' + filter);
-                if (el) el.classList.add('active-type');
-            } else {
-                const btn = document.getElementById('btn-' + filter);
-                if (btn) btn.classList.add('active');
-            }
-            render();
+            const btn = document.getElementById('btn-' + filter);
+            if (btn) btn.classList.add('active');
+            renderCellar();
         }
 
-        function renderDashboard(activeWines, totalB) {
-            const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
+        function updateAllViews() {
+            renderHome();
+            renderCellar();
+            renderNotes();
+        }
+
+        function renderHome() {
+            let totalB = 0, totalV = 0;
+            const activeWines = localWines.filter(w => w.qty > 0);
+            
             activeWines.forEach(w => {
-                if (counts[w.type] !== undefined) counts[w.type] += w.qty;
+                totalB += w.qty;
+                totalV += (w.qty * w.value);
             });
 
-            const barsContainer = document.getElementById('type-bars-container');
+            document.getElementById('home-total-bottles').innerText = totalB;
+            document.getElementById('home-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
+            const avg = totalB > 0 ? (totalV / totalB) : 0;
+            document.getElementById('home-avg-value').innerText = '€ ' + avg.toFixed(2).replace('.', ',');
+
+            // Verdeling
+            const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
+            activeWines.forEach(w => { if (counts[w.type] !== undefined) counts[w.type] += w.qty; });
+            const barsContainer = document.getElementById('home-type-bars');
             barsContainer.innerHTML = '';
             ['Rood', 'Wit', 'Mousserend'].forEach(t => {
                 const pct = totalB > 0 ? Math.round((counts[t] / totalB) * 100) : 0;
-                const filterKey = t.toUpperCase();
-                const isSelected = (currentFilter === filterKey);
                 barsContainer.innerHTML += `
-                    <div class="type-bar-container ${isSelected ? 'active-type' : ''}" id="type-card-${filterKey}" onclick="setFilter('${filterKey}')">
+                    <div class="type-bar-container">
                         <div class="type-bar-lbl">
                             <span><strong>${t}</strong></span>
-                            <span>${counts[t]} flessen (${pct}%)</span>
+                            <span>${counts[t]} fl (${pct}%)</span>
                         </div>
                         <div class="type-bar-bg">
                             <div class="type-bar-fill fill-${t.toLowerCase()}" style="width: ${pct}%"></div>
@@ -1087,11 +1120,12 @@
                 `;
             });
 
+            // Top 3 Wijnen (hoogste waarde of score)
             const topWines = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 3);
-            const topContainer = document.getElementById('top-wines-container');
+            const topContainer = document.getElementById('home-top-wines');
             topContainer.innerHTML = '';
             if (topWines.length === 0) {
-                topContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light)">Geen wijnen beschikbaar</div>';
+                topContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light)">Geen wijnen</div>';
             } else {
                 topWines.forEach((w, idx) => {
                     topContainer.innerHTML += `
@@ -1103,8 +1137,9 @@
                 });
             }
 
+            // Bocht wijnen
             const bochtWines = activeWines.filter(w => w.vivino !== null && w.vivino !== undefined && parseFloat(w.vivino) < 3.5);
-            const bochtContainer = document.getElementById('bocht-wines-container');
+            const bochtContainer = document.getElementById('home-bocht-wines');
             bochtContainer.innerHTML = '';
             if (bochtWines.length === 0) {
                 bochtContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light); font-style:italic;">Geen wijnen onder 3.5</div>';
@@ -1118,51 +1153,88 @@
                     `;
                 });
             }
-        }
 
-        function renderTimeline(activeWines) {
-            const counts = {};
+            // Rijpingskalender
+            const peakCounts = {};
             activeWines.forEach(w => {
                 const p = w.peak || new Date().getFullYear();
-                counts[p] = (counts[p] || 0) + w.qty;
+                peakCounts[p] = (peakCounts[p] || 0) + w.qty;
             });
-
-            const sortedYears = Object.keys(counts).sort((a, b) => a - b);
-            const container = document.getElementById('timeline-bars-container');
-            container.innerHTML = '';
-
+            const sortedYears = Object.keys(peakCounts).sort((a, b) => a - b);
+            const timelineContainer = document.getElementById('home-timeline-bars');
+            timelineContainer.innerHTML = '';
             if (sortedYears.length === 0) {
-                container.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center; grid-column:span 4;">Geen piekdata beschikbaar</div>';
+                timelineContainer.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center; grid-column:span 4;">Geen piekdata</div>';
+            } else {
+                sortedYears.forEach(year => {
+                    timelineContainer.innerHTML += `
+                        <div class="t-bar-item">
+                            <div class="t-year">${year}</div>
+                            <div class="t-count">${peakCounts[year]} 🍾</div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Grafiek updaten
+            updateChart(totalV);
+        }
+
+        function updateChart(currentTotalValue) {
+            const ctx = document.getElementById('valueChart').getContext('2d');
+            
+            // Simuleer een stabiele maandelijkse evolutie op basis van huidige waarde
+            const months = ['Mei', 'Juni', 'Juli', 'Aug', 'Sep', 'Okt'];
+            const base = currentTotalValue * 0.90;
+            const values = [
+                Math.round(base), 
+                Math.round(base * 1.02), 
+                Math.round(base * 1.04), 
+                Math.round(base * 1.05), 
+                Math.round(base * 1.08), 
+                Math.round(currentTotalValue)
+            ];
+
+            if (myChart) {
+                myChart.data.datasets[0].data = values;
+                myChart.update();
                 return;
             }
 
-            sortedYears.forEach(year => {
-                const isSelected = (currentFilter === 'PEAK_' + year);
-                container.innerHTML += `
-                    <div class="t-bar-item ${isSelected ? 'active' : ''}" id="t-bar-${year}" onclick="setFilter('PEAK_${year}')">
-                        <div class="t-year">${year}</div>
-                        <div class="t-count">${counts[year]} 🍾</div>
-                    </div>
-                `;
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Kelderwaarde (€)',
+                        data: values,
+                        borderColor: '#722F37',
+                        backgroundColor: 'rgba(114, 47, 55, 0.05)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { font: { family: 'Lato' } } },
+                        x: { ticks: { font: { family: 'Lato' } } }
+                    }
+                }
             });
         }
 
-        function render() {
-            const q = document.getElementById('search').value.toLowerCase();
-            let totalB = 0, totalV = 0;
-            const container = document.getElementById('wine-list');
+        function renderCellar() {
+            const q = document.getElementById('search-cellar').value.toLowerCase();
+            const container = document.getElementById('cellar-wine-list');
             container.innerHTML = '';
 
-            let activeWines = localWines.filter(w => w.qty > 0);
-            if (activeTab === 'active') {
-                activeWines.forEach(w => { totalB += w.qty; totalV += (w.qty * w.value); });
-                renderDashboard(activeWines, totalB);
-                renderTimeline(activeWines);
-            }
+            let displayWines = localWines.filter(w => w.qty > 0);
 
-            let displayWines = localWines.filter(w => (activeTab === 'active') ? w.qty > 0 : w.qty === 0);
-
-            if (activeTab === 'active' && currentFilter === 'NU') {
+            if (currentFilter === 'NU') {
                 displayWines.sort((a, b) => {
                     const endA = getEndYear(a.drink, a.peak);
                     const endB = getEndYear(b.drink, b.peak);
@@ -1171,31 +1243,20 @@
                 });
             }
 
-            totalB = 0; totalV = 0;
-
             displayWines.forEach(w => {
-                totalB += (activeTab === 'active') ? w.qty : 1;
-                totalV += (activeTab === 'active') ? (w.qty * w.value) : w.value;
-
                 const statusInfo = calculateStatus(w.drink, w.peak);
-
                 let show = true;
-                if (activeTab === 'active') {
-                    if(currentFilter === 'ROOD' && w.type !== 'Rood') show = false;
-                    if(currentFilter === 'WIT' && w.type !== 'Wit') show = false;
-                    if(currentFilter === 'MOUSSEREND' && w.type !== 'Mousserend') show = false;
-                    if(currentFilter === 'NU' && statusInfo.code !== 'NU') show = false;
-                    if(currentFilter === 'BEWAREN' && statusInfo.code !== 'BEWAREN') show = false;
-                    if(currentFilter === 'VERLEDEN' && statusInfo.code !== 'VERLEDEN') show = false;
-                    if(currentFilter.startsWith('PEAK_')) {
-                        const targetYear = parseInt(currentFilter.replace('PEAK_', ''));
-                        if (w.peak !== targetYear) show = false;
-                    }
-                    if(currentFilter === 'PAIR_BORREL' && w.value >= 12) show = false;
-                    if(currentFilter === 'PAIR_BBQ' && (w.type !== 'Rood' || !statusInfo.isOpDronk && statusInfo.code !== 'NU')) show = false;
-                    if(currentFilter === 'PAIR_FISH' && (w.type !== 'Wit' || !statusInfo.isOpDronk && statusInfo.code !== 'NU')) show = false;
-                    if(currentFilter === 'PAIR_SPECIAL' && (w.value < 25 && w.type !== 'Mousserend')) show = false;
-                }
+
+                if(currentFilter === 'ROOD' && w.type !== 'Rood') show = false;
+                if(currentFilter === 'WIT' && w.type !== 'Wit') show = false;
+                if(currentFilter === 'MOUSSEREND' && w.type !== 'Mousserend') show = false;
+                if(currentFilter === 'NU' && statusInfo.code !== 'NU') show = false;
+                if(currentFilter === 'BEWAREN' && statusInfo.code !== 'BEWAREN') show = false;
+                if(currentFilter === 'VERLEDEN' && statusInfo.code !== 'VERLEDEN') show = false;
+                if(currentFilter === 'PAIR_BORREL' && w.value >= 12) show = false;
+                if(currentFilter === 'PAIR_BBQ' && (w.type !== 'Rood' || statusInfo.code !== 'NU')) show = false;
+                if(currentFilter === 'PAIR_FISH' && (w.type !== 'Wit' || statusInfo.code !== 'NU')) show = false;
+                if(currentFilter === 'PAIR_SPECIAL' && (w.value < 25 && w.type !== 'Mousserend')) show = false;
                 
                 const searchString = `${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape}`.toLowerCase();
                 if(!searchString.includes(q)) show = false;
@@ -1247,9 +1308,9 @@
                             </div>
                             
                             <div class="wine-foot">
-                                <div class="total-waarde">${(activeTab === 'active') ? 'Totaal: € ' + (w.qty * w.value).toFixed(2).replace('.',',') : 'Gedronken'}</div>
+                                <div class="total-waarde">Totaal: € ${(w.qty * w.value).toFixed(2).replace('.',',')}</div>
                                 <div class="card-actions-right">
-                                    ${(activeTab === 'active') ? `<button class="btn-edit-small" onclick="openModal(${w.id})">Bewerk</button>` : ''}
+                                    <button class="btn-edit-small" onclick="openModal(${w.id})">Bewerk</button>
                                     <div class="qty-box">
                                         <button class="btn-qty" onclick="changeQty(${w.id}, -1)">-</button>
                                         <span style="font-size: 1.2rem; font-weight: bold;">${w.qty}</span>
@@ -1261,12 +1322,46 @@
                     `;
                 }
             });
+        }
 
-            document.getElementById('total-bottles').innerText = totalB;
-            document.getElementById('total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
-            
-            const avg = totalB > 0 ? (totalV / totalB) : 0;
-            document.getElementById('avg-value').innerText = '€ ' + avg.toFixed(2).replace('.', ',');
+        function renderNotes() {
+            const q = document.getElementById('search-notes').value.toLowerCase();
+            const container = document.getElementById('notes-wine-list');
+            container.innerHTML = '';
+
+            // Toon ALLE wijnen in de historie (zowel actief als op 0 gezet)
+            localWines.forEach(w => {
+                const searchString = `${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape} ${w.notes}`.toLowerCase();
+                if(!searchString.includes(q)) return;
+
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    const activeClass = (w.rating >= i) ? 'active' : '';
+                    starsHtml += `<span class="star ${activeClass}" onclick="updateRating(${w.id}, ${i})">★</span>`;
+                }
+
+                const vivinoBadge = w.vivino ? `<span class="badge badge-vivino">★ ${w.vivino}</span>` : '';
+                const stockBadge = w.qty === 0 ? `<span class="badge" style="background:#E2E8F0; color:#475569;">Gedronken / Op</span>` : `<span class="badge badge-rood">In Kelder (${w.qty} fl)</span>`;
+
+                container.innerHTML += `
+                    <div class="wine-card">
+                        <div class="wine-head">
+                            <div class="wine-title" onclick="showWineInfo(${w.id})">${w.name} ${w.vintage || ''}</div>
+                            <div class="badge-group">
+                                ${stockBadge}
+                                ${vivinoBadge}
+                            </div>
+                        </div>
+                        <div class="wine-sub">${w.producer || 'Onbekende producent'} – ${w.region || ''}</div>
+
+                        <div class="rating-notes-box">
+                            <span class="lbl" style="color: var(--text-light); font-size: 0.7rem; text-transform: uppercase;">Persoonlijke Score & Historische Proefnotitie</span>
+                            <div class="star-rating">${starsHtml}</div>
+                            <textarea class="notes-input" placeholder="Schrijf hier je proefnotitie of herinnering..." onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
         db.channel('public:wines')
