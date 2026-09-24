@@ -485,7 +485,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.11</span>
+        <span class="version-tag">v3.12</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -524,7 +524,7 @@
                 <div id="home-type-bars"></div>
             </div>
             <div class="dash-card">
-                <div class="dash-title">Zwaartepunt Regio's</div>
+                <div class="dash-title">Zwaartepunt Regio's (Dynamisch)</div>
                 <div id="home-region-bars"></div>
             </div>
         </div>
@@ -677,11 +677,11 @@
                     </div>
                     <div class="form-group">
                         <label>Regio / Land</label>
-                        <input type="text" id="new-region" placeholder="Bijv. Colchagua Valley, Chili">
+                        <input type="text" id="new-region" placeholder="Bijv. Bordeaux, Frankrijk">
                     </div>
                     <div class="form-group">
                         <label>Druivenras</label>
-                        <input type="text" id="new-grape" placeholder="Bijv. Carmenère">
+                        <input type="text" id="new-grape" placeholder="Bijv. Cabernet Sauvignon">
                     </div>
                     <div class="form-group">
                         <label>Aantal Flessen</label>
@@ -734,13 +734,36 @@
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let localWines = [];
-        let activeFilters = new Set(); // Multi-select filters
+        let activeFilters = new Set();
         let currentTab = 'home';
         let myChart = null;
         let mapInstance = null;
         let mapMarkers = [];
 
+        // Complete coördinatenlijst inclusief uitgebreide Franse en internationale wijnregio's
         const regionCoords = {
+            'bordeaux': { lat: 44.83, lng: -0.58, name: 'Bordeaux (Frankrijk)' },
+            'bourgogne': { lat: 47.05, lng: 4.83, name: 'Bourgogne (Frankrijk)' },
+            'burgundy': { lat: 47.05, lng: 4.83, name: 'Bourgogne (Frankrijk)' },
+            'rhône': { lat: 44.93, lng: 4.89, name: 'Rhône (Frankrijk)' },
+            'champagne': { lat: 49.25, lng: 4.03, name: 'Champagne (Frankrijk)' },
+            'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace (Frankrijk)' },
+            'sancerre': { lat: 47.33, lng: 2.83, name: 'Sancerre (Loire)' },
+            'loire': { lat: 47.25, lng: 1.50, name: 'Loire (Frankrijk)' },
+            'provence': { lat: 43.50, lng: 6.00, name: 'Provence (Frankrijk)' },
+            'sauternes': { lat: 44.55, lng: -0.39, name: 'Sauternes (Frankrijk)' },
+            'frankrijk': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
+            'france': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
+            'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte (Italië)' },
+            'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane (Italië)' },
+            'tuscany': { lat: 43.46, lng: 11.14, name: 'Toscane (Italië)' },
+            'veneto': { lat: 45.43, lng: 10.98, name: 'Veneto (Italië)' },
+            'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta (Italië)' },
+            'sicilië': { lat: 37.59, lng: 14.01, name: 'Sicilië (Italië)' },
+            'abruzzen': { lat: 42.35, lng: 13.39, name: 'Abruzzen (Italië)' },
+            'puglia': { lat: 41.00, lng: 16.50, name: 'Puglia (Italië)' },
+            'italië': { lat: 42.50, lng: 12.50, name: 'Italië' },
+            'italy': { lat: 42.50, lng: 12.50, name: 'Italië' },
             'chili': { lat: -33.45, lng: -70.66, name: 'Chili' },
             'chile': { lat: -33.45, lng: -70.66, name: 'Chili' },
             'maipo': { lat: -33.65, lng: -70.75, name: 'Maipo Valley (Chili)' },
@@ -748,36 +771,23 @@
             'casablanca': { lat: -33.32, lng: -71.40, name: 'Casablanca Valley (Chili)' },
             'argentinië': { lat: -32.89, lng: -68.84, name: 'Argentinië' },
             'mendoza': { lat: -32.89, lng: -68.84, name: 'Mendoza (Argentinië)' },
-            'californië': { lat: 38.29, lng: -122.28, name: 'Californië' },
+            'californië': { lat: 38.29, lng: -122.28, name: 'Californië (VS)' },
             'napa': { lat: 38.29, lng: -122.28, name: 'Napa Valley (VS)' },
             'zuid-afrika': { lat: -33.93, lng: 18.86, name: 'Zuid-Afrika' },
             'stellenbosch': { lat: -33.93, lng: 18.86, name: 'Stellenbosch (Zuid-Afrika)' },
             'australië': { lat: -34.53, lng: 138.95, name: 'Australië' },
             'barossa': { lat: -34.53, lng: 138.95, name: 'Barossa Valley (Australië)' },
             'nieuw-zeeland': { lat: -41.51, lng: 173.95, name: 'Nieuw-Zeeland' },
-            'moezel': { lat: 49.98, lng: 7.12, name: 'Moezel' },
-            'mosel': { lat: 49.98, lng: 7.12, name: 'Moezel' },
-            'rheingau': { lat: 50.00, lng: 8.00, name: 'Rheingau' },
-            'pfalz': { lat: 49.30, lng: 8.15, name: 'Pfalz' },
+            'moezel': { lat: 49.98, lng: 7.12, name: 'Moezel (Duitsland)' },
+            'mosel': { lat: 49.98, lng: 7.12, name: 'Moezel (Duitsland)' },
+            'rheingau': { lat: 50.00, lng: 8.00, name: 'Rheingau (Duitsland)' },
+            'pfalz': { lat: 49.30, lng: 8.15, name: 'Pfalz (Duitsland)' },
             'duitsland': { lat: 51.16, lng: 10.45, name: 'Duitsland' },
             'oostenrijk': { lat: 47.51, lng: 14.55, name: 'Oostenrijk' },
-            'wachau': { lat: 48.38, lng: 15.42, name: 'Wachau (Oostenrijk)' },
-            'bordeaux': { lat: 44.83, lng: -0.58, name: 'Bordeaux' },
-            'bourgogne': { lat: 47.05, lng: 4.83, name: 'Bourgogne' },
-            'rhône': { lat: 44.93, lng: 4.89, name: 'Rhône' },
-            'champagne': { lat: 49.25, lng: 4.03, name: 'Champagne' },
-            'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace' },
-            'frankrijk': { lat: 46.22, lng: 2.21, name: 'Frankrijk' },
-            'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte' },
-            'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane' },
-            'veneto': { lat: 45.43, lng: 10.98, name: 'Veneto' },
-            'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta' },
-            'italië': { lat: 42.50, lng: 12.50, name: 'Italië' },
-            'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja' },
+            'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja (Spanje)' },
             'spanje': { lat: 40.46, lng: -3.74, name: 'Spanje' },
             'douro': { lat: 41.15, lng: -7.55, name: 'Douro (Portugal)' },
-            'nederland': { lat: 50.84, lng: 5.68, name: 'Nederland' },
-            'limburg': { lat: 50.84, lng: 5.68, name: 'Limburg' }
+            'nederland': { lat: 50.84, lng: 5.68, name: 'Nederland' }
         };
 
         function exportJSON() {
@@ -878,13 +888,13 @@
             const aiBtn = document.getElementById('btn-ai-search');
             aiBtn.innerText = '⏳ Zoeken...'; aiBtn.disabled = true;
 
-            const promptText = `Geef van de volgende wijn exact deze gegevens terug als een valide JSON-object met dubbele aanhalingtekens (geen markdown). Probeer een echte werkende afbeeldings-URL of etiket-link te vinden op internet (zoals Vivino, Wikimedia of producentenwebsite) voor "image_url". Mocht dit niet lukken, geef dan een lege string "".
+            const promptText = `Geef van de volgende wijn exact deze gegevens terug als een valide JSON-object met dubbele aanhalingtekens (geen markdown). Probeer een echte werkende afbeeldings-URL of etiket-link te vinden op internet voor "image_url", anders een lege string "".
             Omschrijving: "${queryText}"
             - "name" (string)
             - "vintage" (getal)
             - "producer" (string)
             - "type" (exact 'Rood', 'Wit' of 'Mousserend')
-            - "region" (string)
+            - "region" (string, bijv. Bordeaux, Frankrijk)
             - "grape" (string)
             - "value" (getal)
             - "peak" (getal)
@@ -1073,18 +1083,14 @@
         }
 
         function toggleFilter(filter) {
-            if (activeFilters.has(filter)) {
-                activeFilters.delete(filter);
-            } else {
-                activeFilters.add(filter);
-            }
+            if (activeFilters.has(filter)) activeFilters.delete(filter);
+            else activeFilters.add(filter);
             
             document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
             activeFilters.forEach(f => {
-                const el = document.getElementById('fblock-' + f) || document.getElementById('fblock-' + f);
+                const el = document.getElementById('fblock-' + f);
                 if (el) el.classList.add('active');
             });
-
             renderCellar();
         }
 
@@ -1119,14 +1125,14 @@
                 `;
             });
 
-            // Regio/Land Zwaartepunt Diagram
+            // Volledig dynamisch Regio/Land Zwaartepunt Diagram
             const regionCounts = {};
             activeWines.forEach(w => {
                 if (!w.region) return;
-                let mainReg = w.region.split(',')[0].trim();
-                regionCounts[mainReg] = (regionCounts[mainReg] || 0) + w.qty;
+                let regClean = w.region.split(',')[0].trim();
+                regionCounts[regClean] = (regionCounts[regClean] || 0) + w.qty;
             });
-            const sortedRegions = Object.entries(regionCounts).sort((a,b) => b[1] - a[1]).slice(0, 4);
+            const sortedRegions = Object.entries(regionCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
             const regionBarsContainer = document.getElementById('home-region-bars');
             regionBarsContainer.innerHTML = '';
             if (sortedRegions.length === 0) {
@@ -1137,7 +1143,7 @@
                     regionBarsContainer.innerHTML += `
                         <div class="type-bar-container">
                             <div class="type-bar-lbl"><span><strong>${reg}</strong></span><span>${qty} flessen (${pct}%)</span></div>
-                            <div class="type-bar-bg"><div class="type-bar-fill fill-wit" style="width: ${pct}%; background: var(--accent);"></div></div>
+                            <div class="type-bar-bg"><div class="type-bar-fill" style="width: ${pct}%; background: var(--accent);"></div></div>
                         </div>
                     `;
                 });
@@ -1272,19 +1278,14 @@
 
                 if (activeFilters.size > 0) {
                     let matchesAny = false;
-                    
-                    // Check type filters
                     if (activeFilters.has('ROOD') && w.type === 'Rood') matchesAny = true;
                     if (activeFilters.has('WIT') && w.type === 'Wit') matchesAny = true;
-                    if (activeFilters.has('MOUSSEREND' ) && w.type === 'Mousserend') matchesAny = true;
+                    if (activeFilters.has('MOUSSEREND') && w.type === 'Mousserend') matchesAny = true;
                     if (activeFilters.has('PAIR_SPECIAL') && w.value > 25) matchesAny = true;
-                    
-                    // Check status filters
                     if (activeFilters.has('NU') && statusInfo.code === 'NU') matchesAny = true;
                     if (activeFilters.has('BEWAREN') && statusInfo.code === 'BEWAREN') matchesAny = true;
                     if (activeFilters.has('VERLEDEN') && statusInfo.code === 'VERLEDEN') matchesAny = true;
 
-                    // Check peak filters
                     activeFilters.forEach(f => {
                         if (f.startsWith('PEAK_')) {
                             const targetYear = parseInt(f.replace('PEAK_', ''));
