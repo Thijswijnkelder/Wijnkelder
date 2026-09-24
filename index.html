@@ -7,7 +7,7 @@
     
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js voor de waarde-evolutie grafiek -->
+    <!-- Chart.js voor grafieken -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Leaflet JS voor de wereldkaart -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -192,7 +192,7 @@
         .top-wine-item:last-child { border-bottom: none; }
         .top-wine-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; font-weight: 500; }
 
-        /* Filterblokken */
+        /* Filterblokken (Multi-select) */
         .filter-section-card {
             background: var(--card-bg);
             border-radius: var(--radius-apple);
@@ -297,7 +297,7 @@
         }
         .btn-backup:hover { border-color: var(--primary); background: rgba(90,24,39,0.03); }
 
-        /* Wijnkaart Layout met Etiket & Losse Info-Pillen */
+        /* Wijnkaart Layout */
         .wine-card {
             background: var(--card-bg);
             border-radius: var(--radius-apple);
@@ -485,7 +485,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.10</span>
+        <span class="version-tag">v3.11</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -518,9 +518,15 @@
             <button class="btn-add" style="width: 100%; padding: 14px; font-size: 0.95rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
         </div>
 
-        <div class="dash-card" style="margin-bottom: 20px;">
-            <div class="dash-title">Verdeling Wijnsoorten</div>
-            <div id="home-type-bars"></div>
+        <div class="dashboard-section">
+            <div class="dash-card">
+                <div class="dash-title">Verdeling Wijnsoorten</div>
+                <div id="home-type-bars"></div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-title">Zwaartepunt Regio's</div>
+                <div id="home-region-bars"></div>
+            </div>
         </div>
 
         <div class="dashboard-section">
@@ -565,30 +571,26 @@
     <div id="view-cellar" style="display: none;">
         <!-- Algemene Filter Reset Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 4px;">
-            <span style="font-family: 'Playfair Display', serif; font-weight: 600; color: var(--primary);">Filters & Selectie</span>
-            <button class="btn-edit-small" onclick="setFilter('ALL')" style="font-weight: 600; color: var(--primary); border-color: var(--primary);">↺ Reset alle filters</button>
+            <span style="font-family: 'Playfair Display', serif; font-weight: 600; color: var(--primary);">Multi-select Filters</span>
+            <button class="btn-edit-small" onclick="resetAllFilters()" style="font-weight: 600; color: var(--primary); border-color: var(--primary);">↺ Reset alle filters</button>
         </div>
 
         <div class="filter-section-card">
             <div class="filter-section-title"><span>Type Wijn</span></div>
             <div class="filter-blocks-row">
-                <div class="filter-block-item active" id="fblock-ALL" onclick="setFilter('ALL')">
-                    <div class="f-block-label">Alles</div>
-                    <div class="f-block-sub">🍾</div>
-                </div>
-                <div class="filter-block-item" id="fblock-ROOD" onclick="setFilter('ROOD')">
+                <div class="filter-block-item" id="fblock-ROOD" onclick="toggleFilter('ROOD')">
                     <div class="f-block-label">Rood</div>
                     <div class="f-block-sub">🔴</div>
                 </div>
-                <div class="filter-block-item" id="fblock-WIT" onclick="setFilter('WIT')">
+                <div class="filter-block-item" id="fblock-WIT" onclick="toggleFilter('WIT')">
                     <div class="f-block-label">Wit</div>
                     <div class="f-block-sub">⚪</div>
                 </div>
-                <div class="filter-block-item" id="fblock-MOUSSEREND" onclick="setFilter('MOUSSEREND')">
+                <div class="filter-block-item" id="fblock-MOUSSEREND" onclick="toggleFilter('MOUSSEREND')">
                     <div class="f-block-label">Mousserend</div>
                     <div class="f-block-sub">🟡</div>
                 </div>
-                <div class="filter-block-item" id="fblock-PAIR_SPECIAL" onclick="setFilter('PAIR_SPECIAL')">
+                <div class="filter-block-item" id="fblock-PAIR_SPECIAL" onclick="toggleFilter('PAIR_SPECIAL')">
                     <div class="f-block-label">Feestelijk</div>
                     <div class="f-block-sub">🥂 &gt;€25</div>
                 </div>
@@ -598,15 +600,15 @@
         <div class="filter-section-card">
             <div class="filter-section-title"><span>Drinkstatus</span></div>
             <div class="filter-blocks-row">
-                <div class="filter-block-item" id="fblock-NU" onclick="setFilter('NU')">
+                <div class="filter-block-item" id="fblock-NU" onclick="toggleFilter('NU')">
                     <div class="f-block-label">Op Dronk</div>
                     <div class="f-block-sub">🍷</div>
                 </div>
-                <div class="filter-block-item" id="fblock-BEWAREN" onclick="setFilter('BEWAREN')">
+                <div class="filter-block-item" id="fblock-BEWAREN" onclick="toggleFilter('BEWAREN')">
                     <div class="f-block-label">Bewaren</div>
                     <div class="f-block-sub">⏳</div>
                 </div>
-                <div class="filter-block-item" id="fblock-VERLEDEN" onclick="setFilter('VERLEDEN')">
+                <div class="filter-block-item" id="fblock-VERLEDEN" onclick="toggleFilter('VERLEDEN')">
                     <div class="f-block-label">Piek Voorbij</div>
                     <div class="f-block-sub">⚠️</div>
                 </div>
@@ -732,7 +734,7 @@
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let localWines = [];
-        let currentFilter = 'ALL';
+        let activeFilters = new Set(); // Multi-select filters
         let currentTab = 'home';
         let myChart = null;
         let mapInstance = null;
@@ -876,7 +878,7 @@
             const aiBtn = document.getElementById('btn-ai-search');
             aiBtn.innerText = '⏳ Zoeken...'; aiBtn.disabled = true;
 
-            const promptText = `Geef van de volgende wijn exact deze gegevens terug als een valide JSON-object met dubbele aanhalingtekens (geen markdown). Probeer indien mogelijk een betrouwbare directe URL naar een productfoto of etiket van de fles mee te geven in "image_url" (bijv. van Vivino, producent of Wikimedia), anders een lege string.
+            const promptText = `Geef van de volgende wijn exact deze gegevens terug als een valide JSON-object met dubbele aanhalingtekens (geen markdown). Probeer een echte werkende afbeeldings-URL of etiket-link te vinden op internet (zoals Vivino, Wikimedia of producentenwebsite) voor "image_url". Mocht dit niet lukken, geef dan een lege string "".
             Omschrijving: "${queryText}"
             - "name" (string)
             - "vintage" (getal)
@@ -1013,7 +1015,7 @@
             const statusInfo = calculateStatus(wine.drink, wine.peak);
             document.getElementById('info-modal-title').innerText = `${wine.name} ${wine.vintage || ''}`;
             document.getElementById('info-modal-content').innerHTML = `
-                ${wine.image_url ? `<div style="text-align:center; margin-bottom:15px;"><img src="${wine.image_url}" style="max-height:150px; border-radius:8px;"></div>` : ''}
+                ${wine.image_url ? `<div style="text-align:center; margin-bottom:15px;"><img src="${wine.image_url}" style="max-height:150px; border-radius:8px;" onerror="this.style.display='none'"></div>` : ''}
                 <p><strong>Producent:</strong> ${wine.producer || '-'}</p>
                 <p><strong>Type:</strong> ${wine.type}</p>
                 <p><strong>Regio:</strong> ${wine.region || '-'}</p>
@@ -1070,11 +1072,25 @@
             if (tab === 'home' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 200);
         }
 
-        function setFilter(filter) {
-            currentFilter = filter;
+        function toggleFilter(filter) {
+            if (activeFilters.has(filter)) {
+                activeFilters.delete(filter);
+            } else {
+                activeFilters.add(filter);
+            }
+            
             document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
-            const activeEl = document.getElementById('fblock-' + filter) || document.getElementById('fblock-PEAK_' + filter.replace('PEAK_', ''));
-            if (activeEl) activeEl.classList.add('active');
+            activeFilters.forEach(f => {
+                const el = document.getElementById('fblock-' + f) || document.getElementById('fblock-' + f);
+                if (el) el.classList.add('active');
+            });
+
+            renderCellar();
+        }
+
+        function resetAllFilters() {
+            activeFilters.clear();
+            document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
             renderCellar();
         }
 
@@ -1102,6 +1118,30 @@
                     </div>
                 `;
             });
+
+            // Regio/Land Zwaartepunt Diagram
+            const regionCounts = {};
+            activeWines.forEach(w => {
+                if (!w.region) return;
+                let mainReg = w.region.split(',')[0].trim();
+                regionCounts[mainReg] = (regionCounts[mainReg] || 0) + w.qty;
+            });
+            const sortedRegions = Object.entries(regionCounts).sort((a,b) => b[1] - a[1]).slice(0, 4);
+            const regionBarsContainer = document.getElementById('home-region-bars');
+            regionBarsContainer.innerHTML = '';
+            if (sortedRegions.length === 0) {
+                regionBarsContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light)">Geen regio-data</div>';
+            } else {
+                sortedRegions.forEach(([reg, qty]) => {
+                    const pct = totalB > 0 ? Math.round((qty / totalB) * 100) : 0;
+                    regionBarsContainer.innerHTML += `
+                        <div class="type-bar-container">
+                            <div class="type-bar-lbl"><span><strong>${reg}</strong></span><span>${qty} flessen (${pct}%)</span></div>
+                            <div class="type-bar-bg"><div class="type-bar-fill fill-wit" style="width: ${pct}%; background: var(--accent);"></div></div>
+                        </div>
+                    `;
+                });
+            }
 
             const topWines = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 3);
             const topContainer = document.getElementById('home-top-wines');
@@ -1131,7 +1171,6 @@
             updateChart(totalV);
         }
 
-        // Wereldkaart: opent direct detailmodal bovenop de kaart zonder tabwissel
         function renderMap(activeWines) {
             if (!mapInstance) {
                 mapInstance = L.map('wineMap', { zoomControl: false, attributionControl: false }).setView([20.0, 0.0], 2);
@@ -1217,30 +1256,44 @@
             const timelineContainer = document.getElementById('cellar-timeline-bars');
             timelineContainer.innerHTML = sortedYears.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light);">Geen piekdata</div>' : '';
             sortedYears.forEach(year => {
-                const isSelected = (currentFilter === 'PEAK_' + year);
+                const filterKey = 'PEAK_' + year;
+                const isSelected = activeFilters.has(filterKey);
                 timelineContainer.innerHTML += `
-                    <div class="filter-block-item ${isSelected ? 'active' : ''}" id="fblock-PEAK_${year}" onclick="setFilter('PEAK_${year}')">
+                    <div class="filter-block-item ${isSelected ? 'active' : ''}" id="fblock-${filterKey}" onclick="toggleFilter('${filterKey}')">
                         <div class="f-block-label">${year}</div>
                         <div class="f-block-sub">${peakCounts[year]} 🍾</div>
                     </div>
                 `;
             });
 
-            if (currentFilter === 'NU') {
-                activeWines.sort((a, b) => getEndYear(a.drink, a.peak) - getEndYear(b.drink, b.peak));
-            }
-
             activeWines.forEach(w => {
                 const statusInfo = calculateStatus(w.drink, w.peak);
                 let show = true;
-                if(currentFilter === 'ROOD' && w.type !== 'Rood') show = false;
-                if(currentFilter === 'WIT' && w.type !== 'Wit') show = false;
-                if(currentFilter === 'MOUSSEREND' && w.type !== 'Mousserend') show = false;
-                if(currentFilter === 'NU' && statusInfo.code !== 'NU') show = false;
-                if(currentFilter === 'BEWAREN' && statusInfo.code !== 'BEWAREN') show = false;
-                if(currentFilter === 'VERLEDEN' && statusInfo.code !== 'VERLEDEN') show = false;
-                if(currentFilter === 'PAIR_SPECIAL' && w.value <= 25) show = false;
-                if(currentFilter.startsWith('PEAK_') && w.peak !== parseInt(currentFilter.replace('PEAK_', ''))) show = false;
+
+                if (activeFilters.size > 0) {
+                    let matchesAny = false;
+                    
+                    // Check type filters
+                    if (activeFilters.has('ROOD') && w.type === 'Rood') matchesAny = true;
+                    if (activeFilters.has('WIT') && w.type === 'Wit') matchesAny = true;
+                    if (activeFilters.has('MOUSSEREND' ) && w.type === 'Mousserend') matchesAny = true;
+                    if (activeFilters.has('PAIR_SPECIAL') && w.value > 25) matchesAny = true;
+                    
+                    // Check status filters
+                    if (activeFilters.has('NU') && statusInfo.code === 'NU') matchesAny = true;
+                    if (activeFilters.has('BEWAREN') && statusInfo.code === 'BEWAREN') matchesAny = true;
+                    if (activeFilters.has('VERLEDEN') && statusInfo.code === 'VERLEDEN') matchesAny = true;
+
+                    // Check peak filters
+                    activeFilters.forEach(f => {
+                        if (f.startsWith('PEAK_')) {
+                            const targetYear = parseInt(f.replace('PEAK_', ''));
+                            if (w.peak === targetYear) matchesAny = true;
+                        }
+                    });
+
+                    if (!matchesAny) show = false;
+                }
                 
                 if(!`${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape}`.toLowerCase().includes(q)) show = false;
 
@@ -1251,7 +1304,7 @@
                     }
 
                     const vivinoBadge = w.vivino ? `<span class="badge badge-vivino">★ ${w.vivino}</span>` : '';
-                    const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket">` : `<div class="wine-label-thumb">🍷</div>`;
+                    const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="wine-label-thumb" style="display:none;">🍷</div>` : `<div class="wine-label-thumb">🍷</div>`;
 
                     container.innerHTML += `
                         <div class="wine-card">
@@ -1324,7 +1377,7 @@
                 if(!`${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape} ${w.notes}`.toLowerCase().includes(q)) return;
                 let starsHtml = '';
                 for (let i = 1; i <= 5; i++) starsHtml += `<span class="star ${(w.rating >= i) ? 'active' : ''}" onclick="updateRating(${w.id}, ${i})">★</span>`;
-                const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket">` : `<div class="wine-label-thumb">🍷</div>`;
+                const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket" onerror="this.style.display='none';"><div class="wine-label-thumb" style="display:none;">🍷</div>` : `<div class="wine-label-thumb">🍷</div>`;
 
                 container.innerHTML += `
                     <div class="wine-card">
