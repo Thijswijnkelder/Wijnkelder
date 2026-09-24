@@ -108,9 +108,12 @@
 
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
             margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
         }
         .stat-card {
             background: var(--card-bg);
@@ -122,7 +125,7 @@
         }
         .stat-val {
             font-family: 'Playfair Display', serif;
-            font-size: 1.45rem;
+            font-size: 1.35rem;
             color: var(--primary);
             font-weight: 600;
         }
@@ -400,8 +403,6 @@
             border: 1px solid rgba(0,0,0,0.03);
             margin-bottom: 12px;
         }
-        .star-rating { display: flex; gap: 4px; font-size: 1.1rem; color: #D1CDC4; cursor: pointer; margin-bottom: 4px; }
-        .star-rating .star.active { color: var(--star); }
         .notes-input {
             width: 100%;
             border: 1px solid var(--border);
@@ -489,7 +490,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.20</span>
+        <span class="version-tag">v3.21</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -517,6 +518,10 @@
             <div class="stat-card">
                 <div class="stat-val" id="home-avg-value">€ 0</div>
                 <div class="stat-lbl">Gem. Fles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="home-avg-rating">-</div>
+                <div class="stat-lbl">Gem. Beoordeling</div>
             </div>
         </div>
 
@@ -788,10 +793,14 @@
                         <input type="text" id="new-volheid" placeholder="Bijv. Vol & Krachtig">
                     </div>
                     <div class="form-group">
-                        <label>Vivino Score</label>
+                        <label>Vivino Score (Algemeen)</label>
                         <input type="number" id="new-vivino" step="0.1" min="1" max="5" placeholder="Bijv. 4.1">
                     </div>
                     <div class="form-group">
+                        <label>Mijn Beoordeling (1.0 - 5.0)</label>
+                        <input type="number" id="new-rating" step="0.1" min="1" max="5" placeholder="Bijv. 4.2">
+                    </div>
+                    <div class="form-group full">
                         <label>Etiket Afbeelding URL</label>
                         <input type="url" id="new-image" placeholder="https://...">
                     </div>
@@ -990,6 +999,7 @@
             - "tannine" (string, bijv. Laag, Medium, Hoog)
             - "volheid" (string, bijv. Licht, Medium, Vol)
             - "vivino" (getal)
+            - "rating" (getal tussen 1.0 en 5.0)
             - "image_url" (string)`;
 
             try {
@@ -1016,6 +1026,7 @@
                 if (info.tannine) document.getElementById('new-tannine').value = info.tannine;
                 if (info.volheid) document.getElementById('new-volheid').value = info.volheid;
                 if (info.vivino) document.getElementById('new-vivino').value = info.vivino;
+                if (info.rating) document.getElementById('new-rating').value = info.rating;
                 if (info.image_url) document.getElementById('new-image').value = info.image_url;
             } catch (err) { alert('AI Fout: ' + err.message); }
             finally { aiBtn.innerText = 'Vul velden in'; aiBtn.disabled = false; }
@@ -1061,9 +1072,10 @@
         async function updateRating(id, rating) {
             let wine = localWines.find(w => w.id === id);
             if (!wine) return;
-            wine.rating = rating;
+            const val = rating === "" || rating === null ? null : parseFloat(rating);
+            wine.rating = val;
             updateAllViews();
-            await db.from('wines').update({ rating: rating }).eq('id', id);
+            await db.from('wines').update({ rating: val }).eq('id', id);
         }
 
         async function updateNotes(id, notes) {
@@ -1095,6 +1107,7 @@
                     document.getElementById('new-tannine').value = wine.tannine || '';
                     document.getElementById('new-volheid').value = wine.volheid || '';
                     document.getElementById('new-vivino').value = wine.vivino || '';
+                    document.getElementById('new-rating').value = wine.rating !== null && wine.rating !== undefined && wine.rating !== 0 ? wine.rating : '';
                     document.getElementById('new-image').value = wine.image_url || '';
                 }
             } else {
@@ -1124,8 +1137,8 @@
                 <p><strong>Tannine:</strong> ${wine.tannine || '-'}</p>
                 <p><strong>Volheid:</strong> ${wine.volheid || '-'}</p>
                 <p><strong>Status:</strong> ${statusInfo.text}</p>
-                <p><strong>Vivino:</strong> ${wine.vivino ? '★ ' + wine.vivino : '-'}</p>
-                <p><strong>Score:</strong> ${wine.rating ? wine.rating + ' / 5 ★' : 'Geen'}</p>
+                <p><strong>Vivino Score:</strong> ${wine.vivino ? '★ ' + wine.vivino : '-'}</p>
+                <p><strong>Mijn Beoordeling:</strong> ${wine.rating !== null && wine.rating !== undefined && wine.rating !== 0 ? '★ ' + Number(wine.rating).toFixed(1) : 'Geen'}</p>
                 <p><strong>Notitie:</strong> ${wine.notes || 'Geen'}</p>
             `;
             document.getElementById('info-modal').style.display = 'flex';
@@ -1149,6 +1162,7 @@
                 tannine: document.getElementById('new-tannine').value || '-',
                 volheid: document.getElementById('new-volheid').value || '-',
                 vivino: document.getElementById('new-vivino').value ? parseFloat(document.getElementById('new-vivino').value) : null,
+                rating: document.getElementById('new-rating').value ? parseFloat(document.getElementById('new-rating').value) : null,
                 image_url: document.getElementById('new-image').value || ''
             };
             closeModal();
@@ -1156,7 +1170,7 @@
                 let wine = localWines.find(w => w.id == editId);
                 if (wine) { Object.assign(wine, wineData); updateAllViews(); await db.from('wines').update(wineData).eq('id', editId); }
             } else {
-                wineData.id = Date.now(); wineData.rating = 0; wineData.notes = '';
+                wineData.id = Date.now(); wineData.notes = '';
                 localWines.push(wineData); updateAllViews(); await db.from('wines').insert([wineData]);
             }
         }
@@ -1215,9 +1229,13 @@
             const activeWines = localWines.filter(w => w.qty > 0);
             activeWines.forEach(w => { totalB += w.qty; totalV += (w.qty * w.value); });
 
+            const ratedWines = activeWines.filter(w => w.rating !== null && w.rating !== undefined && w.rating > 0);
+            const avgRating = ratedWines.length > 0 ? (ratedWines.reduce((sum, w) => sum + parseFloat(w.rating), 0) / ratedWines.length).toFixed(1) : '-';
+
             document.getElementById('home-total-bottles').innerText = totalB;
             document.getElementById('home-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
             document.getElementById('home-avg-value').innerText = '€ ' + (totalB > 0 ? (totalV / totalB) : 0).toFixed(2).replace('.', ',');
+            document.getElementById('home-avg-rating').innerText = avgRating !== '-' ? '★ ' + avgRating : '-';
 
             const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
             activeWines.forEach(w => { if (counts[w.type] !== undefined) counts[w.type] += w.qty; });
@@ -1581,11 +1599,7 @@
                 if(!`${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape}`.toLowerCase().includes(q)) show = false;
 
                 if(show) {
-                    let starsHtml = '';
-                    for (let i = 1; i <= 5; i++) {
-                        starsHtml += `<span class="star ${(w.rating >= i) ? 'active' : ''}" onclick="updateRating(${w.id}, ${i})">★</span>`;
-                    }
-
+                    const ratingVal = w.rating !== null && w.rating !== undefined && w.rating !== 0 ? w.rating : '';
                     const vivinoBadge = w.vivino ? `<span class="badge badge-vivino">★ ${w.vivino}</span>` : '';
                     const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="wine-label-thumb" style="display:none;">🍷</div>` : `<div class="wine-label-thumb">🍷</div>`;
 
@@ -1630,8 +1644,13 @@
                                 </div>
 
                                 <div class="rating-notes-box">
-                                    <span class="lbl" style="color: var(--text-light); font-size: 0.62rem; text-transform: uppercase; font-weight:600;">Beoordeling & Notitie</span>
-                                    <div class="star-rating">${starsHtml}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <span class="lbl" style="color: var(--text-light); font-size: 0.62rem; text-transform: uppercase; font-weight:600;">Mijn Beoordeling & Notitie</span>
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <span style="font-size: 0.8rem; color: var(--star);">★</span>
+                                            <input type="number" step="0.1" min="1.0" max="5.0" value="${ratingVal}" placeholder="4.0" style="width: 60px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-family: inherit; font-weight: 600; text-align: center; background: #FFF; outline: none;" onchange="updateRating(${w.id}, this.value)">
+                                        </div>
+                                    </div>
                                     <textarea class="notes-input" placeholder="Voeg notities toe..." onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
                                 </div>
                                 
@@ -1657,7 +1676,7 @@
             const q = document.getElementById('search-notes').value.toLowerCase();
             const container = document.getElementById('notes-wine-list');
             container.innerHTML = '';
-            const notedWines = localWines.filter(w => w.notes && w.notes.trim() !== '');
+            const notedWines = localWines.filter(w => (w.notes && w.notes.trim() !== '') || (w.rating !== null && w.rating !== undefined && w.rating > 0));
 
             if (notedWines.length === 0) {
                 container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-light); font-style:italic;">Nog geen proefnotities toegevoegd.</div>';
@@ -1666,8 +1685,7 @@
 
             notedWines.forEach(w => {
                 if(!`${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape} ${w.notes}`.toLowerCase().includes(q)) return;
-                let starsHtml = '';
-                for (let i = 1; i <= 5; i++) starsHtml += `<span class="star ${(w.rating >= i) ? 'active' : ''}" onclick="updateRating(${w.id}, ${i})">★</span>`;
+                const ratingVal = w.rating !== null && w.rating !== undefined && w.rating !== 0 ? w.rating : '';
                 const thumbHtml = w.image_url ? `<img src="${w.image_url}" class="wine-label-thumb" alt="Etiket" onerror="this.style.display='none';"><div class="wine-label-thumb" style="display:none;">🍷</div>` : `<div class="wine-label-thumb">🍷</div>`;
 
                 container.innerHTML += `
@@ -1680,8 +1698,13 @@
                             </div>
                             <div class="wine-sub">${w.producer || ''} – ${w.region || ''}</div>
                             <div class="rating-notes-box">
-                                <span class="lbl" style="color: var(--text-light); font-size: 0.62rem; text-transform: uppercase; font-weight:600;">Score & Proefnotitie</span>
-                                <div class="star-rating">${starsHtml}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span class="lbl" style="color: var(--text-light); font-size: 0.62rem; text-transform: uppercase; font-weight:600;">Mijn Beoordeling & Notitie</span>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <span style="font-size: 0.8rem; color: var(--star);">★</span>
+                                        <input type="number" step="0.1" min="1.0" max="5.0" value="${ratingVal}" placeholder="4.0" style="width: 60px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-family: inherit; font-weight: 600; text-align: center; background: #FFF; outline: none;" onchange="updateRating(${w.id}, this.value)">
+                                    </div>
+                                </div>
                                 <textarea class="notes-input" onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
                             </div>
                         </div>
