@@ -487,7 +487,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.16</span>
+        <span class="version-tag">v3.17</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -675,9 +675,25 @@
             </div>
         </div>
 
-        <div class="dash-card">
-            <div class="dash-title">Investering & Waarde per Regio</div>
-            <div id="finance-region-investment-bars"></div>
+        <!-- Regio Analyses: Investering & Aantallen naast elkaar -->
+        <div class="card shadow mb-4 dash-card">
+            <div class="dash-title">Regio Analyses (Waarde & Aantallen)</div>
+            <div class="card-body">
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <!-- Grafiek 1: Investering per Regio -->
+                    <div style="flex: 1; min-width: 300px;">
+                        <h4 class="small font-weight-bold" style="font-size: 0.85rem; color: var(--accent); margin-bottom: 8px;">Investering per Regio (€)</h4>
+                        <div id="finance-region-investment-bars"></div>
+                    </div>
+                    <!-- Grafiek 2: Aantal Flessen per Regio (%) -->
+                    <div style="flex: 1; min-width: 300px;">
+                        <h4 class="small font-weight-bold" style="font-size: 0.85rem; color: var(--accent); margin-bottom: 8px;">Aantal Flessen per Regio (%)</h4>
+                        <div style="position: relative; height: 220px; width: 100%;">
+                            <canvas id="regionPercentageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="chart-card">
@@ -799,6 +815,7 @@
         let activeFilters = new Set();
         let currentTab = 'home';
         let myChart = null;
+        let myRegionPercentageChart = null;
         let mapInstance = null;
         let mapMarkers = [];
 
@@ -1140,7 +1157,12 @@
 
             updateAllViews();
             if (tab === 'home' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 200);
-            if (tab === 'finance' && myChart) setTimeout(() => myChart.resize(), 200);
+            if (tab === 'finance') {
+                setTimeout(() => {
+                    if (myChart) myChart.resize();
+                    if (myRegionPercentageChart) myRegionPercentageChart.resize();
+                }, 200);
+            }
         }
 
         function toggleFilter(filter) {
@@ -1303,6 +1325,48 @@
             });
         }
 
+        function updateRegionPercentageChart(regionCountsData, totalBottles) {
+            const ctx = document.getElementById('regionPercentageChart').getContext('2d');
+            const labels = Object.keys(regionCountsData);
+            const counts = Object.values(regionCountsData);
+            const percentages = counts.map(c => totalBottles > 0 ? ((c / totalBottles) * 100).toFixed(1) : 0);
+
+            if (myRegionPercentageChart instanceof Chart) {
+                myRegionPercentageChart.destroy();
+            }
+
+            myRegionPercentageChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: percentages,
+                        backgroundColor: [
+                            '#5A1827', '#7A6553', '#C5A059', '#36b9cc', '#4e73df', '#1cc88a', '#e74a3b', '#858796'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const percentage = context.parsed || 0;
+                                    const absoluteCount = counts[context.dataIndex];
+                                    return ` ${label}: ${percentage}% (${absoluteCount} flessen)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         function selectDish(dish) {
             document.getElementById('dish-input').value = dish;
             runSommelierMatch();
@@ -1381,14 +1445,17 @@
             document.getElementById('fin-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
             document.getElementById('fin-total-bottles').innerText = totalB;
 
-            // Investering & Waarde per Regio (verplaatst naar Tab 5)
+            // Investering & Aantallen per Regio berekenen
             const regionInvestment = {};
+            const regionCounts = {};
             activeWines.forEach(w => {
                 if (!w.region) return;
                 let regClean = w.region.split(',')[0].trim();
-                let val = (w.market_value && w.market_value > 0) ? (w.market_value * w.qty) : (w.value * w.qty);
+                let val = (w.value * w.qty);
                 regionInvestment[regClean] = (regionInvestment[regClean] || 0) + val;
+                regionCounts[regClean] = (regionCounts[regClean] || 0) + w.qty;
             });
+
             const sortedRegInvestment = Object.entries(regionInvestment).sort((a,b) => b[1] - a[1]).slice(0, 5);
             const regionInvContainer = document.getElementById('finance-region-investment-bars');
             regionInvContainer.innerHTML = '';
@@ -1405,6 +1472,9 @@
                     `;
                 });
             }
+
+            // Rendere tweede grafiek (Aantallen per Regio %)
+            updateRegionPercentageChart(regionCounts, totalB);
 
             const top10 = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 10);
             const top10Container = document.getElementById('finance-top10-list');
