@@ -487,18 +487,18 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.15</span>
+        <span class="version-tag">v3.16</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
 
-    <!-- Tabs (Herstelde volgorde met nieuwe tabbladen achteraan) -->
+    <!-- Tabs -->
     <div class="tab-nav">
         <button class="tab-btn active" id="tab-home" onclick="switchTab('home')">Home</button>
         <button class="tab-btn" id="tab-cellar" onclick="switchTab('cellar')">Wijnkelder</button>
         <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">Notities</button>
         <button class="tab-btn" id="tab-sommelier" onclick="switchTab('sommelier')">🍷 Wijn-Spijs</button>
-        <button class="tab-btn" id="tab-finance" onclick="switchTab('finance')">📈 Portefeuille</button>
+        <button class="tab-btn" id="tab-finance" onclick="switchTab('finance')">📈 Waarde & Investeringen</button>
     </div>
 
     <!-- HOME TABBLAD -->
@@ -528,8 +528,8 @@
                 <div id="home-type-bars"></div>
             </div>
             <div class="dash-card">
-                <div class="dash-title">Investering & Waarde per Regio</div>
-                <div id="home-region-investment-bars"></div>
+                <div class="dash-title">Recente Toevoegingen</div>
+                <div id="home-recent-wines"></div>
             </div>
         </div>
 
@@ -548,13 +548,6 @@
         <div class="map-card">
             <div class="dash-title">Wijnregio's op de Kaart (Klik voor Wijnen)</div>
             <div id="wineMap"></div>
-        </div>
-
-        <div class="chart-card">
-            <div class="dash-title">Waardeontwikkeling Kelder (€)</div>
-            <div style="position: relative; height: 220px; width: 100%;">
-                <canvas id="valueChart"></canvas>
-            </div>
         </div>
 
         <div class="dash-card" style="margin-bottom: 20px;">
@@ -669,7 +662,7 @@
         </div>
     </div>
 
-    <!-- WAARDEONTWIKKELING & PORTEFEUILLE TABBLAD (Tabblad 5) -->
+    <!-- WAARDE & INVESTERINGEN TABBLAD (Tabblad 5) -->
     <div id="view-finance" style="display: none;">
         <div class="stats" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 20px;">
             <div class="stat-card">
@@ -679,6 +672,18 @@
             <div class="stat-card">
                 <div class="stat-val" id="fin-total-bottles">0</div>
                 <div class="stat-lbl">Totaal Flessen in Portefeuille</div>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-title">Investering & Waarde per Regio</div>
+            <div id="finance-region-investment-bars"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="dash-title">Waardeontwikkeling Kelder (€)</div>
+            <div style="position: relative; height: 220px; width: 100%;">
+                <canvas id="valueChart"></canvas>
             </div>
         </div>
 
@@ -1135,6 +1140,7 @@
 
             updateAllViews();
             if (tab === 'home' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 200);
+            if (tab === 'finance' && myChart) setTimeout(() => myChart.resize(), 200);
         }
 
         function toggleFilter(filter) {
@@ -1185,29 +1191,18 @@
                 `;
             });
 
-            const regionInvestment = {};
-            activeWines.forEach(w => {
-                if (!w.region) return;
-                let regClean = w.region.split(',')[0].trim();
-                let val = (w.market_value && w.market_value > 0) ? (w.market_value * w.qty) : (w.value * w.qty);
-                regionInvestment[regClean] = (regionInvestment[regClean] || 0) + val;
+            // Recente toevoegingen
+            const recentWines = [...activeWines].sort((a, b) => b.id - a.id).slice(0, 3);
+            const recentContainer = document.getElementById('home-recent-wines');
+            recentContainer.innerHTML = recentWines.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light)">Geen wijnen</div>' : '';
+            recentWines.forEach(w => {
+                recentContainer.innerHTML += `
+                    <div class="top-wine-item" onclick="showWineInfo(${w.id})" style="cursor:pointer;">
+                        <div class="top-wine-name">${w.name} ${w.vintage || ''}</div>
+                        <div><strong>${w.qty}x</strong> (€ ${Number(w.value).toFixed(2).replace('.',',')})</div>
+                    </div>
+                `;
             });
-            const sortedRegInvestment = Object.entries(regionInvestment).sort((a,b) => b[1] - a[1]).slice(0, 5);
-            const regionInvContainer = document.getElementById('home-region-investment-bars');
-            regionInvContainer.innerHTML = '';
-            if (sortedRegInvestment.length === 0) {
-                regionInvContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light)">Geen regio-data</div>';
-            } else {
-                sortedRegInvestment.forEach(([reg, val]) => {
-                    const pct = totalV > 0 ? Math.round((val / totalV) * 100) : 0;
-                    regionInvContainer.innerHTML += `
-                        <div class="type-bar-container">
-                            <div class="type-bar-lbl"><span><strong>${reg}</strong></span><span>€ ${Math.round(val)} (${pct}%)</span></div>
-                            <div class="type-bar-bg"><div class="type-bar-fill" style="width: ${pct}%; background: var(--accent);"></div></div>
-                        </div>
-                    `;
-                });
-            }
 
             const topWines = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 3);
             const topContainer = document.getElementById('home-top-wines');
@@ -1234,7 +1229,6 @@
             });
 
             renderMap(activeWines);
-            updateChart(totalV);
         }
 
         function renderMap(activeWines) {
@@ -1387,6 +1381,31 @@
             document.getElementById('fin-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
             document.getElementById('fin-total-bottles').innerText = totalB;
 
+            // Investering & Waarde per Regio (verplaatst naar Tab 5)
+            const regionInvestment = {};
+            activeWines.forEach(w => {
+                if (!w.region) return;
+                let regClean = w.region.split(',')[0].trim();
+                let val = (w.market_value && w.market_value > 0) ? (w.market_value * w.qty) : (w.value * w.qty);
+                regionInvestment[regClean] = (regionInvestment[regClean] || 0) + val;
+            });
+            const sortedRegInvestment = Object.entries(regionInvestment).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            const regionInvContainer = document.getElementById('finance-region-investment-bars');
+            regionInvContainer.innerHTML = '';
+            if (sortedRegInvestment.length === 0) {
+                regionInvContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light)">Geen regio-data</div>';
+            } else {
+                sortedRegInvestment.forEach(([reg, val]) => {
+                    const pct = totalV > 0 ? Math.round((val / totalV) * 100) : 0;
+                    regionInvContainer.innerHTML += `
+                        <div class="type-bar-container">
+                            <div class="type-bar-lbl"><span><strong>${reg}</strong></span><span>€ ${Math.round(val)} (${pct}%)</span></div>
+                            <div class="type-bar-bg"><div class="type-bar-fill" style="width: ${pct}%; background: var(--accent);"></div></div>
+                        </div>
+                    `;
+                });
+            }
+
             const top10 = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 10);
             const top10Container = document.getElementById('finance-top10-list');
             top10Container.innerHTML = top10.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-light)">Geen wijnen</div>' : '';
@@ -1421,6 +1440,8 @@
                     </div>
                 `;
             });
+
+            updateChart(totalV);
         }
 
         function renderCellar() {
