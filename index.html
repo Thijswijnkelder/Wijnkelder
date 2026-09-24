@@ -293,6 +293,28 @@
             letter-spacing: 0.5px;
         }
 
+        .backup-btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn-backup {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--primary);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-backup:hover {
+            border-color: var(--primary);
+            background: #F7E9EA;
+        }
+
         .wine-card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -573,7 +595,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.6</span>
+        <span class="version-tag">v3.7</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -635,6 +657,20 @@
             <div style="position: relative; height: 220px; width: 100%;">
                 <canvas id="valueChart"></canvas>
             </div>
+        </div>
+
+        <!-- Backup & Gegevensbeheer -->
+        <div class="dash-card" style="margin-bottom: 20px;">
+            <div class="dash-title">📦 Backup & Gegevensbeheer</div>
+            <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px;">
+                Exporteer je database voor review of importeer een eerdere backup.
+            </div>
+            <div class="backup-btn-row">
+                <button class="btn-backup" onclick="exportJSON()">📥 Exporteer JSON</button>
+                <button class="btn-backup" onclick="exportCSV()">📊 Exporteer Excel (CSV)</button>
+                <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">📤 Importeer JSON</button>
+            </div>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importJSON(event)">
         </div>
     </div>
 
@@ -884,6 +920,71 @@
             'nederland': { lat: 50.84, lng: 5.68, name: 'Nederland' },
             'limburg': { lat: 50.84, lng: 5.68, name: 'Limburg' }
         };
+
+        // Export & Import functies
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localWines, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `wijnkelder_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function exportCSV() {
+            if (localWines.length === 0) {
+                alert('Geen wijnen om te exporteren.');
+                return;
+            }
+            const headers = ["id", "name", "vintage", "producer", "type", "region", "grape", "qty", "value", "peak", "drink", "vivino", "rating", "notes"];
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(";") + "\n";
+            
+            localWines.forEach(w => {
+                const row = headers.map(h => {
+                    let val = w[h] !== undefined && w[h] !== null ? String(w[h]) : "";
+                    if (val.includes(';') || val.includes('"') || val.includes('\n')) {
+                        val = `"${val.replace(/"/g, '""')}"`;
+                    }
+                    return val;
+                });
+                csvContent += row.join(";") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `wijnkelder_export_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        async function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('Bestand bevat geen geldige lijst met wijnen.');
+                    
+                    if (confirm(`Wil je ${imported.length} wijnen inladen en synchroniseren met de database?`)) {
+                        for (let wine of imported) {
+                            delete wine.created_at;
+                            await db.from('wines').upsert(wine);
+                        }
+                        await fetchWines();
+                        alert('Import succesvol voltooid!');
+                    }
+                } catch(err) {
+                    alert('Fout bij importeren van JSON: ' + err.message);
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
 
         function getHistoricalValues(currentValue) {
             let history = JSON.parse(localStorage.getItem('thijs_wine_value_history') || '{}');
