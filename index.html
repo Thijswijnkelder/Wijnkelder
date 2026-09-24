@@ -490,7 +490,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.21</span>
+        <span class="version-tag">v3.22</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -647,7 +647,7 @@
         <div class="dash-card">
             <div class="dash-title">🍷 Wijn-Spijs Adviseur</div>
             <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 12px;">
-                Voer in wat je gaat eten of kies een suggestie. De adviseur zoekt in je kelder naar de perfecte fles die <strong>nu op dronk</strong> is!
+                Voer in wat je gaat eten of kies een suggestie. De adviseur analyseert je kelder op smaakprofiel, tannines en volheid voor de perfecte match die <strong>nu op dronk</strong> is!
             </div>
             <div class="controls" style="margin-bottom: 10px;">
                 <input type="text" id="dish-input" class="search" placeholder="Bijv. gegrilde ribeye, truffelrisotto, pittige Thai curry...">
@@ -785,8 +785,8 @@
                         <input type="text" id="new-drink" placeholder="Bijv. 2024 – 2028">
                     </div>
                     <div class="form-group">
-                        <label>Tannine (bijv. Laag/Med/Hoog)</label>
-                        <input type="text" id="new-tannine" placeholder="Bijv. Medium-Hoog">
+                        <label>Tannine (Laag / Medium / Hoog)</label>
+                        <input type="text" id="new-tannine" placeholder="Bijv. Medium">
                     </div>
                     <div class="form-group">
                         <label>Volheid / Body</label>
@@ -996,8 +996,8 @@
             - "value" (getal)
             - "peak" (getal)
             - "drink" (string)
-            - "tannine" (string, bijv. Laag, Medium, Hoog)
-            - "volheid" (string, bijv. Licht, Medium, Vol)
+            - "tannine" (string, exact 'Laag', 'Medium' of 'Hoog')
+            - "volheid" (string, exact 'Licht', 'Medium' of 'Vol')
             - "vivino" (getal)
             - "rating" (getal tussen 1.0 en 5.0)
             - "image_url" (string)`;
@@ -1421,25 +1421,41 @@
             readyWines.forEach(w => {
                 let score = 0;
                 const name = (w.name + ' ' + w.grape + ' ' + w.region + ' ' + w.type).toLowerCase();
+                const tannine = (w.tannine || '').toLowerCase();
+                const volheid = (w.volheid || '').toLowerCase();
                 
-                if (query.includes('ribeye') || query.includes('biefstuk') || query.includes('rood vlees')) {
-                    if (w.type === 'Rood' && (name.includes('cabernet') || name.includes('syrah') || name.includes('barolo') || name.includes('bordeaux') || name.includes('malbec'))) score += 10;
-                    else if (w.type === 'Rood') score += 5;
-                } else if (query.includes('truffel') || query.includes('pasta') || query.includes('romig')) {
-                    if (name.includes('chardonnay') || name.includes('bourgogne') || name.includes('nebbiolo')) score += 10;
+                // Gerecht-matching logica met gewichten voor Tannine en Volheid
+                if (query.includes('ribeye') || query.includes('biefstuk') || query.includes('rood vlees') || query.includes('vlees')) {
+                    if (w.type === 'Rood') {
+                        score += 6;
+                        if (tannine.includes('hoog') || tannine.includes('stevig')) score += 5; // Stevige tannines snijden door vet heen!
+                        if (volheid.includes('vol') || volheid.includes('krachtig')) score += 4;
+                        if (name.includes('cabernet') || name.includes('syrah') || name.includes('barolo') || name.includes('bordeaux') || name.includes('malbec')) score += 3;
+                    }
+                } else if (query.includes('truffel') || query.includes('pasta') || query.includes('romig') || query.includes('risotto')) {
+                    if (w.type === 'Wit' && (volheid.includes('vol') || volheid.includes('rijk') || name.includes('chardonnay') || name.includes('bourgogne'))) score += 10;
+                    else if (w.type === 'Rood' && tannine.includes('laag')) score += 8; // Soepele rode wijn bij pasta
                     else score += 4;
                 } else if (query.includes('curry') || query.includes('pittig') || query.includes('aziatisch')) {
                     if (w.type === 'Wit' && (name.includes('riesling') || name.includes('gewürztraminer') || name.includes('viognier'))) score += 10;
                     else if (w.type === 'Mousserend') score += 8;
+                    else if (tannine.includes('hoog')) score -= 4; // Veel tannine botst met pittig!
                     else score += 3;
-                } else if (query.includes('vis') || query.includes('zalm') || query.includes('schaaldieren')) {
-                    if (w.type === 'Wit' || w.type === 'Mousserend') score += 10;
+                } else if (query.includes('vis') || query.includes('zalm') || query.includes('schaaldieren') || query.includes('sushi')) {
+                    if (w.type === 'Wit' || w.type === 'Mousserend') {
+                        score += 10;
+                        if (volheid.includes('licht') || volheid.includes('fris')) score += 4;
+                    }
+                    if (w.type === 'Rood') score -= 5;
                 } else if (query.includes('kaas') || query.includes('borrel')) {
                     score += 6;
+                    if (w.type === 'Rood' && tannine.includes('hoog')) score += 3;
                 } else {
+                    // Algemene match
                     if (w.type === 'Rood') score += 5;
                     if (w.type === 'Wit') score += 5;
                 }
+
                 if (score > 0) matches.push({ wine: w, score });
             });
 
@@ -1447,11 +1463,11 @@
             const topMatches = matches.slice(0, 3);
 
             if (topMatches.length === 0) {
-                container.innerHTML = `<div class="dash-card" style="text-align:center; color:var(--text-light);">Geen specifieke 'Op Dronk' fles gevonden die direct matcht. Bekijk alle openstaande flessen in de Wijnkelder!</div>`;
+                container.innerHTML = `<div class="dash-card" style="text-align:center; color:var(--text-light);">Geen specifieke 'Op Dronk' fles gevonden die direct matcht op smaak/tannines. Bekijk alle openstaande flessen in de Wijnkelder!</div>`;
                 return;
             }
 
-            container.innerHTML = `<div class="dash-title">🍷 Aanbevolen flessen uit jouw kelder (Nu op dronk):</div>`;
+            container.innerHTML = `<div class="dash-title">🍷 Slimme Wijn-Spijs Matches (Op basis van tannines & volheid):</div>`;
             topMatches.forEach((m, idx) => {
                 const w = m.wine;
                 const statusInfo = calculateStatus(w.drink, w.peak);
@@ -1465,7 +1481,7 @@
                             </div>
                             <div class="wine-sub">${w.producer || ''} | Regio: ${w.region || '-'}</div>
                             <div style="font-size:0.82rem; color:var(--accent); font-weight:600; margin-bottom:6px;">
-                                💡 Perfecte combi bij "${query}" (${statusInfo.text})
+                                💡 Match bij "${query}" — Tannine: <strong>${w.tannine || '-'}</strong> | Volheid: <strong>${w.volheid || '-'}</strong> (${statusInfo.text})
                             </div>
                             <div class="total-waarde">Fleswaarde: € ${Number(w.value).toFixed(2).replace('.',',')} (${w.qty}x op voorraad)</div>
                         </div>
