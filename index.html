@@ -193,6 +193,9 @@
         }
         .top-wine-item:last-child { border-bottom: none; }
         .top-wine-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; font-weight: 500; }
+        
+        /* Specifieke klasse voor de Top-10 om volledige namen te tonen */
+        .top-10-name { white-space: normal !important; overflow: visible !important; text-overflow: unset !important; max-width: none !important; font-weight: 500; flex: 1; padding-right: 10px; }
 
         /* Filterblokken (Multi-select) */
         .filter-section-card {
@@ -487,7 +490,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.17</span>
+        <span class="version-tag">v3.18</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -1479,8 +1482,8 @@
             top10.forEach((w, idx) => {
                 top10Container.innerHTML += `
                     <div class="top-wine-item" onclick="showWineInfo(${w.id})" style="cursor:pointer; padding: 8px 0;">
-                        <div class="top-wine-name"><strong>${idx + 1}.</strong> ${w.name} ${w.vintage || ''} (${w.qty}x)</div>
-                        <div><strong>€ ${Number(w.value * w.qty).toFixed(2).replace('.',',')}</strong> <span style="font-size:0.7rem; color:var(--text-light);"> (€ ${Number(w.value).toFixed(2)}/st)</span></div>
+                        <div class="top-10-name"><strong>${idx + 1}.</strong> ${w.name} ${w.vintage || ''} (${w.qty}x)</div>
+                        <div style="white-space: nowrap;"><strong>€ ${Number(w.value * w.qty).toFixed(2).replace('.',',')}</strong> <span style="font-size:0.7rem; color:var(--text-light);"> (€ ${Number(w.value).toFixed(2)}/st)</span></div>
                     </div>
                 `;
             });
