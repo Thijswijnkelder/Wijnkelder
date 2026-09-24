@@ -9,6 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Chart.js voor de waarde-evolutie grafiek -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet JS voor de interactieve wereldkaart -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -147,7 +150,7 @@
             font-weight: 600;
         }
 
-        .chart-card {
+        .chart-card, .map-card {
             background: var(--card-bg);
             border-radius: 12px;
             border: 1px solid var(--border);
@@ -155,6 +158,41 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
+
+        #wineMap {
+            height: 280px;
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            z-index: 1;
+        }
+
+        .type-bar-container { 
+            margin-bottom: 8px; 
+            padding: 4px;
+            border-radius: 6px;
+        }
+        .type-bar-lbl {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text);
+            margin-bottom: 3px;
+        }
+        .type-bar-bg {
+            background: var(--bg);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .type-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        .fill-rood { background: var(--primary); }
+        .fill-wit { background: var(--accent); }
+        .fill-mousserend { background: #D4AF37; }
 
         .top-wine-item {
             display: flex;
@@ -199,6 +237,12 @@
             border-radius: 8px;
             padding: 8px 6px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .t-bar-item:hover, .t-bar-item.active {
+            border-color: var(--primary);
+            background: #F7E9EA;
         }
         .t-year {
             font-size: 0.75rem;
@@ -555,7 +599,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.1</span>
+        <span class="version-tag">v3.2</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -588,6 +632,12 @@
             <button class="btn-add" style="width: 100%; padding: 14px; font-size: 1rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
         </div>
 
+        <!-- Rood / Wit / Mousserend Verdelingsblokken (Zonder filter) -->
+        <div class="dash-card" style="margin-bottom: 20px;">
+            <div class="dash-title">📊 Verdeling Wijnsoorten</div>
+            <div id="home-type-bars"></div>
+        </div>
+
         <div class="dashboard-section">
             <div class="dash-card">
                 <div class="dash-title">⭐ Top 3 Wijnen</div>
@@ -599,25 +649,24 @@
             </div>
         </div>
 
-        <!-- Waarde Evolutie Grafiek (Sep 2026 - Dec 2027) -->
+        <!-- Wereldkaart met regio's -->
+        <div class="map-card">
+            <div class="dash-title">🌍 Wijnregio's op de Wereldkaart</div>
+            <div id="wineMap"></div>
+        </div>
+
+        <!-- Waarde Evolutie Grafiek -->
         <div class="chart-card">
             <div class="dash-title">📈 Waardeontwikkeling Kelder (€)</div>
             <div style="position: relative; height: 220px; width: 100%;">
                 <canvas id="valueChart"></canvas>
             </div>
         </div>
-
-        <div class="timeline-card">
-            <div class="timeline-title">
-                <span>📅 Rijpingskalender (Piekjaar)</span>
-            </div>
-            <div class="timeline-bars" id="home-timeline-bars"></div>
-        </div>
     </div>
 
     <!-- WIJNKELDER TABBLAD -->
     <div id="view-cellar" style="display: none;">
-        <!-- Bijgewerkte filters -->
+        <!-- Filters -->
         <div class="filters">
             <button class="filter-btn active" id="btn-ALL" onclick="setFilter('ALL')">Alles</button>
             <button class="filter-btn" id="btn-ROOD" onclick="setFilter('ROOD')">🔴 Rood</button>
@@ -632,7 +681,16 @@
             <button class="filter-btn" id="btn-VERLEDEN" onclick="setFilter('VERLEDEN')">⚠️ Piek voorbij</button>
         </div>
 
-        <div class="controls">
+        <!-- Rijpingskalender verplaatst naar Wijnkelder als filter -->
+        <div class="timeline-card" style="margin-top: 15px;">
+            <div class="timeline-title">
+                <span>📅 Rijpingskalender (Klik op piekjaar om te filteren)</span>
+                <span style="font-size: 0.8rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset filter</span>
+            </div>
+            <div class="timeline-bars" id="cellar-timeline-bars"></div>
+        </div>
+
+        <div class="controls" style="margin-top: 15px;">
             <input type="text" id="search-cellar" class="search" placeholder="Zoeken op wijn, regio, druif..." oninput="renderCellar()">
         </div>
 
@@ -745,43 +803,49 @@
         let currentFilter = 'ALL';
         let currentTab = 'home';
         let myChart = null;
+        let mapInstance = null;
+        let mapMarkers = [];
 
-        // Simulatie van maandelijkse piekwaarden voor de grafiek (Sep 2026 t/m Dec 2027)
-        // We slaan dit op in localStorage zodat de hoogste piekwaarde per maand behouden blijft.
+        // Coördinaten database voor bekende wijnregio's
+        const regionCoords = {
+            'piemonte': { lat: 44.75, lng: 8.30, name: 'Piëmonte' },
+            'toscane': { lat: 43.46, lng: 11.14, name: 'Toscane' },
+            'bordeaux': { lat: 44.83, lng: -0.58, name: 'Bordeaux' },
+            'bourgogne': { lat: 47.05, lng: 4.83, name: 'Bourgogne' },
+            'rioja': { lat: 42.46, lng: -2.44, name: 'Rioja' },
+            'jumilla': { lat: 38.47, lng: -1.33, name: 'Jumilla' },
+            'franciacorta': { lat: 45.58, lng: 10.02, name: 'Franciacorta' },
+            'veneto': { lat: 45.43, lng: 10.98, name: 'Veneto' },
+            'sicilië': { lat: 37.59, lng: 14.01, name: 'Sicilië' },
+            'alsace': { lat: 48.31, lng: 7.42, name: 'Alsace' },
+            'douro': { lat: 41.15, lng: -7.55, name: 'Douro' },
+            'napa': { lat: 38.29, lng: -122.28, name: 'Napa Valley' }
+        };
+
         function getHistoricalValues(currentValue) {
             let history = JSON.parse(localStorage.getItem('thijs_wine_value_history') || '{}');
             const now = new Date();
             const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             
-            // Update of registreer de hoogste waarde voor de huidige maand
             if (!history[currentMonthKey] || currentValue > history[currentMonthKey]) {
                 history[currentMonthKey] = currentValue;
                 localStorage.setItem('thijs_wine_value_history', JSON.stringify(history));
             }
 
-            // Definiëring van alle maanden van Sep 2026 t/m Dec 2027
             const monthsDef = [
-                { key: '2026-09', label: 'Sep 2026' },
-                { key: '2026-10', label: 'Okt 2026' },
-                { key: '2026-11', label: 'Nov 2026' },
-                { key: '2026-12', label: 'Dec 2026' },
-                { key: '2027-01', label: 'Jan 2027' },
-                { key: '2027-02', label: 'Feb 2027' },
-                { key: '2027-03', label: 'Mrt 2027' },
-                { key: '2027-04', label: 'Apr 2027' },
-                { key: '2027-05', label: 'Mei 2027' },
-                { key: '2027-06', label: 'Jun 2027' },
-                { key: '2027-07', label: 'Jul 2027' },
-                { key: '2027-08', label: 'Aug 2027' },
-                { key: '2027-09', label: 'Sep 2027' },
-                { key: '2027-10', label: 'Okt 2027' },
-                { key: '2027-11', label: 'Nov 2027' },
-                { key: '2027-12', label: 'Dec 2027' }
+                { key: '2026-09', label: 'Sep 2026' }, { key: '2026-10', label: 'Okt 2026' },
+                { key: '2026-11', label: 'Nov 2026' }, { key: '2026-12', label: 'Dec 2026' },
+                { key: '2027-01', label: 'Jan 2027' }, { key: '2027-02', label: 'Feb 2027' },
+                { key: '2027-03', label: 'Mrt 2027' }, { key: '2027-04', label: 'Apr 2027' },
+                { key: '2027-05', label: 'Mei 2027' }, { key: '2027-06', label: 'Jun 2027' },
+                { key: '2027-07', label: 'Jul 2027' }, { key: '2027-08', label: 'Aug 2027' },
+                { key: '2027-09', label: 'Sep 2027' }, { key: '2027-10', label: 'Okt 2027' },
+                { key: '2027-11', label: 'Nov 2027' }, { key: '2027-12', label: 'Dec 2027' }
             ];
 
             let labels = [];
             let data = [];
-            let lastKnownValue = currentValue * 0.9; // realistische start
+            let lastKnownValue = currentValue * 0.9;
 
             monthsDef.forEach(m => {
                 labels.push(m.label);
@@ -969,7 +1033,7 @@
             let wine = localWines.find(w => w.id === id);
             if (!wine) return;
             wine.notes = notes;
-            updateAllViews(); // Direct bijwerken zodat proefnotitie-tab meteen reageert
+            updateAllViews();
             await db.from('wines').update({ notes: notes }).eq('id', id);
         }
 
@@ -1048,7 +1112,7 @@
                 vivino: vivinoVal ? parseFloat(vivinoVal) : null
             };
 
-            closeModal();
+closeModal();
 
             if (editId) {
                 let wine = localWines.find(w => w.id == editId);
@@ -1079,13 +1143,26 @@
             document.getElementById('view-notes').style.display = (tab === 'notes') ? 'block' : 'none';
 
             updateAllViews();
+
+            // Als we naar home gaan en de kaart bestaat, even hertekenen zodat Leaflet niet verspringt
+            if (tab === 'home' && mapInstance) {
+                setTimeout(() => mapInstance.invalidateSize(), 200);
+            }
         }
 
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            const btn = document.getElementById('btn-' + filter);
-            if (btn) btn.classList.add('active');
+            document.querySelectorAll('.t-bar-item').forEach(item => item.classList.remove('active'));
+
+            if (filter.startsWith('PEAK_')) {
+                const year = filter.replace('PEAK_', '');
+                const el = document.getElementById('t-bar-' + year);
+                if (el) el.classList.add('active');
+            } else {
+                const btn = document.getElementById('btn-' + filter);
+                if (btn) btn.classList.add('active');
+            }
             renderCellar();
         }
 
@@ -1108,6 +1185,26 @@
             document.getElementById('home-total-value').innerText = '€ ' + totalV.toFixed(2).replace('.', ',');
             const avg = totalB > 0 ? (totalV / totalB) : 0;
             document.getElementById('home-avg-value').innerText = '€ ' + avg.toFixed(2).replace('.', ',');
+
+            // Verdeling Rood / Wit / Mousserend (zonder filter)
+            const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
+            activeWines.forEach(w => { if (counts[w.type] !== undefined) counts[w.type] += w.qty; });
+            const barsContainer = document.getElementById('home-type-bars');
+            barsContainer.innerHTML = '';
+            ['Rood', 'Wit', 'Mousserend'].forEach(t => {
+                const pct = totalB > 0 ? Math.round((counts[t] / totalB) * 100) : 0;
+                barsContainer.innerHTML += `
+                    <div class="type-bar-container">
+                        <div class="type-bar-lbl">
+                            <span><strong>${t}</strong></span>
+                            <span>${counts[t]} flessen (${pct}%)</span>
+                        </div>
+                        <div class="type-bar-bg">
+                            <div class="type-bar-fill fill-${t.toLowerCase()}" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
 
             // Top 3 Wijnen
             const topWines = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 3);
@@ -1143,30 +1240,55 @@
                 });
             }
 
-            // Rijpingskalender
-            const peakCounts = {};
-            activeWines.forEach(w => {
-                const p = w.peak || new Date().getFullYear();
-                peakCounts[p] = (peakCounts[p] || 0) + w.qty;
-            });
-            const sortedYears = Object.keys(peakCounts).sort((a, b) => a - b);
-            const timelineContainer = document.getElementById('home-timeline-bars');
-            timelineContainer.innerHTML = '';
-            if (sortedYears.length === 0) {
-                timelineContainer.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center; grid-column:span 4;">Geen piekdata</div>';
-            } else {
-                sortedYears.forEach(year => {
-                    timelineContainer.innerHTML += `
-                        <div class="t-bar-item">
-                            <div class="t-year">${year}</div>
-                            <div class="t-count">${peakCounts[year]} 🍾</div>
-                        </div>
-                    `;
-                });
+            // Render Wereldkaart
+            renderMap(activeWines);
+
+            // Grafiek updaten
+            updateChart(totalV);
+        }
+
+        function renderMap(activeWines) {
+            if (!mapInstance) {
+                mapInstance = L.map('wineMap', { zoomControl: false }).setView([45.0, 8.0], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(mapInstance);
             }
 
-            // Grafiek updaten (Sep 2026 - Dec 2027)
-            updateChart(totalV);
+            // Verwijder oude markers
+            mapMarkers.forEach(m => mapInstance.removeLayer(m));
+            mapMarkers = [];
+
+            // Groepeer flessen per regio
+            const regionCounts = {};
+            activeWines.forEach(w => {
+                if (!w.region) return;
+                const regLower = w.region.toLowerCase().trim();
+                // Zoek match in bekende coördinaten
+                let matchedKey = Object.keys(regionCoords).find(k => regLower.includes(k));
+                if (matchedKey) {
+                    if (!regionCounts[matchedKey]) regionCounts[matchedKey] = 0;
+                    regionCounts[matchedKey] += w.qty;
+                }
+            });
+
+            // Voeg markers toe
+            Object.keys(regionCounts).forEach(key => {
+                const info = regionCoords[key];
+                const count = regionCounts[key];
+                
+                const marker = L.circleMarker([info.lat, info.lng], {
+                    radius: Math.min(8 + count * 2, 22),
+                    fillColor: "#722F37",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.85
+                }).addTo(mapInstance);
+
+                marker.bindPopup(`<strong>${info.name}</strong><br>${count} fles(sen) in kelder`);
+                mapMarkers.push(marker);
+            });
         }
 
         function updateChart(currentTotalValue) {
@@ -1211,10 +1333,33 @@
             const container = document.getElementById('cellar-wine-list');
             container.innerHTML = '';
 
-            let displayWines = localWines.filter(w => w.qty > 0);
+            let activeWines = localWines.filter(w => w.qty > 0);
+
+            // Bouw ook de rijpingskalender op tabblad Wijnkelder
+            const peakCounts = {};
+            activeWines.forEach(w => {
+                const p = w.peak || new Date().getFullYear();
+                peakCounts[p] = (peakCounts[p] || 0) + w.qty;
+            });
+            const sortedYears = Object.keys(peakCounts).sort((a, b) => a - b);
+            const timelineContainer = document.getElementById('cellar-timeline-bars');
+            timelineContainer.innerHTML = '';
+            if (sortedYears.length === 0) {
+                timelineContainer.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center; grid-column:span 4;">Geen piekdata</div>';
+            } else {
+                sortedYears.forEach(year => {
+                    const isSelected = (currentFilter === 'PEAK_' + year);
+                    timelineContainer.innerHTML += `
+                        <div class="t-bar-item ${isSelected ? 'active' : ''}" id="t-bar-${year}" onclick="setFilter('PEAK_${year}')">
+                            <div class="t-year">${year}</div>
+                            <div class="t-count">${peakCounts[year]} 🍾</div>
+                        </div>
+                    `;
+                });
+            }
 
             if (currentFilter === 'NU') {
-                displayWines.sort((a, b) => {
+                activeWines.sort((a, b) => {
                     const endA = getEndYear(a.drink, a.peak);
                     const endB = getEndYear(b.drink, b.peak);
                     if (endA !== endB) return endA - endB;
@@ -1222,7 +1367,7 @@
                 });
             }
 
-            displayWines.forEach(w => {
+            activeWines.forEach(w => {
                 const statusInfo = calculateStatus(w.drink, w.peak);
                 let show = true;
 
@@ -1233,6 +1378,10 @@
                 if(currentFilter === 'BEWAREN' && statusInfo.code !== 'BEWAREN') show = false;
                 if(currentFilter === 'VERLEDEN' && statusInfo.code !== 'VERLEDEN') show = false;
                 if(currentFilter === 'PAIR_SPECIAL' && w.value <= 25) show = false;
+                if(currentFilter.startsWith('PEAK_')) {
+                    const targetYear = parseInt(currentFilter.replace('PEAK_', ''));
+                    if (w.peak !== targetYear) show = false;
+                }
                 
                 const searchString = `${w.name} ${w.vintage} ${w.producer} ${w.region} ${w.grape}`.toLowerCase();
                 if(!searchString.includes(q)) show = false;
@@ -1305,8 +1454,6 @@
             const container = document.getElementById('notes-wine-list');
             container.innerHTML = '';
 
-            // Filter alleen wijnen waar een proefnotitie is ingevuld (niet leeg)
-            // Blijft ook zichtbaar als qty 0 is geworden.
             const notedWines = localWines.filter(w => w.notes && w.notes.trim() !== '');
 
             if (notedWines.length === 0) {
