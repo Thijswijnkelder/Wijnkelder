@@ -209,65 +209,72 @@
             max-width: 180px;
         }
 
-        /* Filter Blokken Styling */
+        /* Compacte Filter & Kalender Blokken */
         .filter-section-card {
             background: var(--card-bg);
-            border-radius: 12px;
+            border-radius: 10px;
             border: 1px solid var(--border);
-            padding: 14px 16px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
         .filter-section-title {
             font-family: 'Playfair Display', serif;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--primary);
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .filter-blocks-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
-            gap: 8px;
+        .filter-blocks-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
         }
+        .filter-blocks-row::-webkit-scrollbar { display: none; }
+
         .filter-block-item {
             background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 8px 6px;
+            border-radius: 6px;
+            padding: 6px 10px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            min-width: 75px;
+            flex-shrink: 0;
         }
         .filter-block-item:hover, .filter-block-item.active {
             border-color: var(--primary);
             background: #F7E9EA;
         }
         .f-block-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--accent);
             font-weight: bold;
+            white-space: nowrap;
         }
         .f-block-sub {
             font-family: 'Playfair Display', serif;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             color: var(--primary);
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         .controls {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .search {
             flex: 1;
-            padding: 12px 15px;
+            padding: 10px 14px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             background: var(--card-bg);
             font-family: inherit;
             outline: none;
@@ -566,7 +573,7 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.5</span>
+        <span class="version-tag">v3.6</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
@@ -616,7 +623,7 @@
             </div>
         </div>
 
-        <!-- Wereldkaart (Vrij van API sleutels) -->
+        <!-- Wereldkaart -->
         <div class="map-card">
             <div class="dash-title">🌍 Wijnregio's op de Wereldkaart</div>
             <div id="wineMap"></div>
@@ -633,13 +640,13 @@
 
     <!-- WIJNKELDER TABBLAD -->
     <div id="view-cellar" style="display: none;">
-        <!-- Filters in mooie blokken -->
+        <!-- Compacte Filterblokken (horizontaal scrolbaar) -->
         <div class="filter-section-card">
             <div class="filter-section-title">
                 <span>🍇 Type Wijn</span>
-                <span style="font-size: 0.75rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset</span>
+                <span style="font-size: 0.7rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset</span>
             </div>
-            <div class="filter-blocks-grid">
+            <div class="filter-blocks-row">
                 <div class="filter-block-item active" id="fblock-ALL" onclick="setFilter('ALL')">
                     <div class="f-block-label">Alles</div>
                     <div class="f-block-sub">🍾</div>
@@ -665,7 +672,7 @@
 
         <div class="filter-section-card">
             <div class="filter-section-title"><span>🍷 Drinkstatus</span></div>
-            <div class="filter-blocks-grid">
+            <div class="filter-blocks-row">
                 <div class="filter-block-item" id="fblock-NU" onclick="setFilter('NU')">
                     <div class="f-block-label">Op Dronk</div>
                     <div class="f-block-sub">🍷</div>
@@ -681,12 +688,12 @@
             </div>
         </div>
 
-        <!-- Rijpingskalender als filterblokken -->
+        <!-- Rijpingskalender als horizontale balk -->
         <div class="filter-section-card">
             <div class="filter-section-title">
                 <span>📅 Rijpingskalender (Piekjaar)</span>
             </div>
-            <div class="timeline-bars" id="cellar-timeline-bars"></div>
+            <div class="filter-blocks-row" id="cellar-timeline-bars"></div>
         </div>
 
         <div class="controls" style="margin-top: 15px;">
@@ -1212,13 +1219,6 @@
             const activeEl = document.getElementById('fblock-' + filter);
             if (activeEl) activeEl.classList.add('active');
 
-            document.querySelectorAll('.t-bar-item').forEach(item => item.classList.remove('active'));
-            if (filter.startsWith('PEAK_')) {
-                const year = filter.replace('PEAK_', '');
-                const el = document.getElementById('t-bar-' + year);
-                if (el) el.classList.add('active');
-            }
-
             renderCellar();
         }
 
@@ -1242,7 +1242,6 @@
             const avg = totalB > 0 ? (totalV / totalB) : 0;
             document.getElementById('home-avg-value').innerText = '€ ' + avg.toFixed(2).replace('.', ',');
 
-            // Verdeling Rood / Wit / Mousserend
             const counts = { Rood: 0, Wit: 0, Mousserend: 0 };
             activeWines.forEach(w => { if (counts[w.type] !== undefined) counts[w.type] += w.qty; });
             const barsContainer = document.getElementById('home-type-bars');
@@ -1262,7 +1261,6 @@
                 `;
             });
 
-            // Top 3 Wijnen
             const topWines = [...activeWines].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, 3);
             const topContainer = document.getElementById('home-top-wines');
             topContainer.innerHTML = '';
@@ -1279,7 +1277,6 @@
                 });
             }
 
-            // Bocht wijnen
             const bochtWines = activeWines.filter(w => w.vivino !== null && w.vivino !== undefined && parseFloat(w.vivino) < 3.5);
             const bochtContainer = document.getElementById('home-bocht-wines');
             bochtContainer.innerHTML = '';
@@ -1296,10 +1293,7 @@
                 });
             }
 
-            // Render Wereldkaart (OpenStreetMap open source, geen API sleutel nodig)
             renderMap(activeWines);
-
-            // Grafiek updaten
             updateChart(totalV);
         }
 
@@ -1392,7 +1386,7 @@
 
             let activeWines = localWines.filter(w => w.qty > 0);
 
-            // Rijpingskalender blokken
+            // Rijpingskalender horizontaal opbouwen
             const peakCounts = {};
             activeWines.forEach(w => {
                 const p = w.peak || new Date().getFullYear();
@@ -1402,12 +1396,12 @@
             const timelineContainer = document.getElementById('cellar-timeline-bars');
             timelineContainer.innerHTML = '';
             if (sortedYears.length === 0) {
-                timelineContainer.innerHTML = '<div style="font-size:0.85rem; color:var(--text-light); text-align:center;">Geen piekdata</div>';
+                timelineContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-light);">Geen piekdata</div>';
             } else {
                 sortedYears.forEach(year => {
                     const isSelected = (currentFilter === 'PEAK_' + year);
                     timelineContainer.innerHTML += `
-                        <div class="filter-block-item ${isSelected ? 'active' : ''}" id="t-bar-${year}" onclick="setFilter('PEAK_${year}')">
+                        <div class="filter-block-item ${isSelected ? 'active' : ''}" id="fblock-PEAK_${year}" onclick="setFilter('PEAK_${year}')">
                             <div class="f-block-label">${year}</div>
                             <div class="f-block-sub">${peakCounts[year]} 🍾</div>
                         </div>
