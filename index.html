@@ -14,17 +14,18 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Lato:wght@300;400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap');
 
         :root {
-            --bg: #FAF7F2;
+            --bg: #F5F2EB; /* Warm Italiaans linnen papier */
             --card-bg: #FFFFFF;
-            --primary: #722F37;
-            --accent: #6B705C;
-            --text: #2C2C2C;
-            --text-light: #8A8A8A;
-            --border: #E8E3DB;
-            --star: #D4AF37;
+            --primary: #5A1827; /* Diep Italiaans bordeaux */
+            --accent: #7A6553; /* Warme terracotta-taupe */
+            --text: #1D1D1F; /* Apple Obsidian Text */
+            --text-light: #86868B; /* Apple Secondary Gray */
+            --border: #E3DDD0;
+            --star: #C5A059; /* Subtiel geborsteld goud */
+            --radius-apple: 16px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,17 +33,17 @@
         body {
             background-color: var(--bg);
             color: var(--text);
-            padding: 20px 16px;
+            padding: 24px 16px;
             max-width: 800px;
             margin: 0 auto;
-            font-family: 'Lato', sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
         header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
             border-bottom: 1px solid var(--border);
             position: relative;
         }
@@ -50,15 +51,16 @@
         h1 {
             font-family: 'Playfair Display', serif;
             color: var(--primary);
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 600;
+            letter-spacing: -0.02em;
         }
 
         .subtitle {
             font-family: 'Playfair Display', serif;
             font-style: italic;
             color: var(--accent);
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             margin-top: 4px;
         }
 
@@ -66,35 +68,40 @@
             position: absolute;
             top: 0;
             right: 0;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
             color: var(--text-light);
-            background: var(--border);
-            padding: 2px 6px;
-            border-radius: 4px;
+            background: rgba(0,0,0,0.04);
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 500;
         }
 
-        /* Drie Tabbladen */
+        /* Apple-style Segmented Control (Tabs) */
         .tab-nav {
             display: flex;
             justify-content: center;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            background: rgba(0,0,0,0.04);
+            padding: 4px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+            gap: 4px;
         }
         .tab-btn {
             background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 16px;
+            border: none;
+            color: var(--text-light);
+            padding: 8px 18px;
             border-radius: 20px;
-            font-weight: bold;
+            font-weight: 600;
             font-size: 0.85rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .tab-btn.active {
-            background: var(--primary);
-            color: #fff;
+            background: var(--card-bg);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
         .stats {
@@ -105,23 +112,25 @@
         }
         .stat-card {
             background: var(--card-bg);
-            padding: 15px 10px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
+            padding: 16px 12px;
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
             text-align: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
         .stat-val {
             font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
+            font-size: 1.45rem;
             color: var(--primary);
+            font-weight: 600;
         }
         .stat-lbl {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--accent);
+            letter-spacing: 0.08em;
+            color: var(--text-light);
             margin-top: 4px;
+            font-weight: 600;
         }
 
         /* Dashboards & Widgets */
@@ -137,10 +146,10 @@
 
         .dash-card {
             background: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            padding: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            padding: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
         .dash-title {
             font-family: 'Playfair Display', serif;
@@ -152,54 +161,53 @@
 
         .chart-card, .map-card {
             background: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            padding: 16px;
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            padding: 18px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
 
         #wineMap {
-            height: 300px;
+            height: 280px;
             width: 100%;
-            border-radius: 8px;
+            border-radius: 12px;
             border: 1px solid var(--border);
             z-index: 1;
         }
 
         .type-bar-container { 
             margin-bottom: 8px; 
-            padding: 4px;
-            border-radius: 6px;
+            padding: 2px;
         }
         .type-bar-lbl {
             display: flex;
             justify-content: space-between;
             font-size: 0.75rem;
             color: var(--text);
-            margin-bottom: 3px;
+            margin-bottom: 4px;
+            font-weight: 500;
         }
         .type-bar-bg {
-            background: var(--bg);
-            height: 8px;
-            border-radius: 4px;
+            background: rgba(0,0,0,0.04);
+            height: 6px;
+            border-radius: 3px;
             overflow: hidden;
-            border: 1px solid var(--border);
         }
         .type-bar-fill {
             height: 100%;
-            border-radius: 4px;
+            border-radius: 3px;
         }
         .fill-rood { background: var(--primary); }
         .fill-wit { background: var(--accent); }
-        .fill-mousserend { background: #D4AF37; }
+        .fill-mousserend { background: var(--star); }
 
         .top-wine-item {
             display: flex;
             justify-content: space-between;
             font-size: 0.8rem;
-            padding: 5px 0;
-            border-bottom: 1px dashed var(--border);
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
         }
         .top-wine-item:last-child { border-bottom: none; }
         .top-wine-name {
@@ -207,22 +215,23 @@
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 180px;
+            font-weight: 500;
         }
 
-        /* Compacte Filter & Kalender Blokken */
+        /* Strakke Compacte Filter & Kalender Blokken */
         .filter-section-card {
             background: var(--card-bg);
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            padding: 10px 12px;
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
+            padding: 12px 14px;
             margin-bottom: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
         .filter-section-title {
             font-family: 'Playfair Display', serif;
             font-size: 0.85rem;
             color: var(--primary);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -231,31 +240,38 @@
             display: flex;
             gap: 6px;
             overflow-x: auto;
-            padding-bottom: 4px;
+            padding-bottom: 2px;
             scrollbar-width: none;
         }
         .filter-blocks-row::-webkit-scrollbar { display: none; }
 
         .filter-block-item {
-            background: var(--bg);
+            background: rgba(0,0,0,0.02);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 10px;
             padding: 6px 10px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             min-width: 75px;
             flex-shrink: 0;
         }
-        .filter-block-item:hover, .filter-block-item.active {
+        .filter-block-item:hover { background: rgba(90,24,39,0.03); }
+        .filter-block-item.active {
             border-color: var(--primary);
-            background: #F7E9EA;
+            background: var(--primary);
+            color: #FFF;
         }
+        .filter-block-item.active .f-block-label { color: rgba(255,255,255,0.8); }
+        .filter-block-item.active .f-block-sub { color: #FFF; }
+
         .f-block-label {
-            font-size: 0.7rem;
-            color: var(--accent);
-            font-weight: bold;
+            font-size: 0.65rem;
+            color: var(--text-light);
+            font-weight: 600;
             white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         .f-block-sub {
             font-family: 'Playfair Display', serif;
@@ -263,6 +279,7 @@
             color: var(--primary);
             margin-top: 1px;
         }
+        .filter-block-item.active .f-block-sub { color: #FFF; }
 
         .controls {
             display: flex;
@@ -273,25 +290,29 @@
             flex: 1;
             padding: 10px 14px;
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 0.9rem;
             background: var(--card-bg);
             font-family: inherit;
             outline: none;
+            transition: all 0.2s;
         }
-        .search:focus { border-color: var(--accent); }
+        .search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,24,39,0.08); }
+        
         .btn-add {
             background: var(--primary);
             color: white;
             border: none;
             padding: 0 20px;
-            border-radius: 8px;
-            font-weight: 700;
+            border-radius: 10px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            box-shadow: 0 4px 12px rgba(90,24,39,0.15);
+            transition: transform 0.1s ease;
         }
+        .btn-add:active { transform: scale(0.98); }
 
         .backup-btn-row {
             display: flex;
@@ -300,28 +321,30 @@
         }
         .btn-backup {
             flex: 1;
-            background: var(--bg);
+            background: rgba(0,0,0,0.02);
             border: 1px solid var(--border);
             color: var(--primary);
             padding: 8px 10px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 0.75rem;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
             text-align: center;
+            transition: all 0.2s;
         }
         .btn-backup:hover {
             border-color: var(--primary);
-            background: #F7E9EA;
+            background: rgba(90,24,39,0.03);
         }
 
         .wine-card {
             background: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border);
+            border-radius: var(--radius-apple);
+            border: 1px solid rgba(0,0,0,0.03);
             padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            margin-bottom: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+            transition: box-shadow 0.2s ease;
         }
         .wine-head {
             display: flex;
@@ -331,13 +354,13 @@
         }
         .wine-title {
             font-family: 'Playfair Display', serif;
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             color: var(--primary);
             font-weight: 600;
             line-height: 1.2;
             cursor: pointer;
         }
-        .wine-title:hover { text-decoration: underline; }
+        .wine-title:hover { opacity: 0.8; }
 
         .badge-group {
             display: flex;
@@ -345,22 +368,22 @@
             align-items: center;
         }
         .badge {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 4px 8px;
-            border-radius: 4px;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 6px;
             font-weight: 700;
         }
-        .badge-rood { background: #F7E9EA; color: var(--primary); border: 1px solid #EBD5D7;}
-        .badge-wit { background: #F3F4E8; color: var(--accent); border: 1px solid #E1E3D3;}
-        .badge-mousserend { background: #FDF6E2; color: #8A6D3B; border: 1px solid #F7E4B2;}
-        .badge-vivino { background: #EFECE6; color: var(--text); border: 1px solid var(--border); font-weight: bold; }
+        .badge-rood { background: rgba(90,24,39,0.08); color: var(--primary); }
+        .badge-wit { background: rgba(122,101,83,0.1); color: var(--accent); }
+        .badge-mousserend { background: rgba(197,160,89,0.12); color: #8A6D3B; }
+        .badge-vivino { background: rgba(0,0,0,0.04); color: var(--text); font-weight: 600; }
 
         .wine-sub {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-light);
-            margin-bottom: 15px;
+            margin-bottom: 14px;
             font-style: italic;
         }
 
@@ -368,37 +391,38 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            font-size: 0.9rem;
-            border-top: 1px dashed var(--border);
-            border-bottom: 1px dashed var(--border);
-            padding: 15px 0;
-            margin-bottom: 15px;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            padding: 12px 0;
+            margin-bottom: 14px;
         }
         .wine-info div span.lbl {
             color: var(--text-light);
             display: block;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
             margin-bottom: 2px;
+            font-weight: 600;
         }
 
-        .status-nu { color: var(--accent); font-weight: bold; }
-        .status-bewaren { color: #B58500; font-weight: bold; }
-        .status-verleden { color: #A63A50; font-weight: bold; }
+        .status-nu { color: var(--accent); font-weight: 600; }
+        .status-bewaren { color: #A67C00; font-weight: 600; }
+        .status-verleden { color: var(--primary); font-weight: 600; }
 
         .rating-notes-box {
-            background: #FAF9F6;
+            background: rgba(0,0,0,0.015);
             padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #EFECE6;
-            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.03);
+            margin-bottom: 14px;
         }
         .star-rating {
             display: flex;
             gap: 4px;
-            font-size: 1.2rem;
-            color: #CCC;
+            font-size: 1.1rem;
+            color: #D1CDC4;
             cursor: pointer;
             margin-bottom: 6px;
         }
@@ -406,13 +430,15 @@
         .notes-input {
             width: 100%;
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 8px;
+            border-radius: 8px;
+            padding: 8px 10px;
             font-size: 0.85rem;
             font-family: inherit;
             background: #FFF;
             resize: vertical;
+            outline: none;
         }
+        .notes-input:focus { border-color: var(--primary); }
 
         .wine-foot {
             display: flex;
@@ -421,7 +447,7 @@
         }
         .total-waarde {
             font-family: 'Playfair Display', serif;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: var(--primary);
             font-weight: 600;
         }
@@ -437,100 +463,105 @@
             color: var(--accent);
             padding: 4px 10px;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             cursor: pointer;
+            font-weight: 500;
         }
-        .btn-edit-small:hover {
-            border-color: var(--accent);
-            color: var(--primary);
-        }
+        .btn-edit-small:hover { border-color: var(--primary); color: var(--primary); }
 
         .qty-box {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
         .btn-qty {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             border: 1px solid var(--border);
-            background: var(--bg);
+            background: var(--card-bg);
             color: var(--primary);
             border-radius: 50%;
             font-weight: 400;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
             touch-action: manipulation;
+            transition: background 0.1s;
         }
+        .btn-qty:active { background: rgba(0,0,0,0.05); }
 
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(2px);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
             z-index: 100;
             justify-content: center;
             align-items: center;
-            padding: 15px;
+            padding: 16px;
         }
         .modal {
-            background: var(--bg);
+            background: var(--card-bg);
             width: 100%;
-            max-width: 500px;
-            border-radius: 12px;
-            padding: 25px;
+            max-width: 480px;
+            border-radius: 20px;
+            padding: 24px;
             max-height: 90vh;
             overflow-y: auto;
-            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.04);
         }
         .modal h2 {
             font-family: 'Playfair Display', serif;
             color: var(--primary);
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 10px;
+            font-size: 1.4rem;
         }
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
-        .form-group { margin-bottom: 12px; }
+        .form-group { margin-bottom: 10px; }
         .form-group.full { grid-column: span 2; }
         .form-group label {
             display: block;
-            font-size: 0.8rem;
-            color: var(--accent);
+            font-size: 0.7rem;
+            color: var(--text-light);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
             margin-bottom: 4px;
+            font-weight: 600;
         }
         .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 8px;
             font-family: inherit;
-            background: var(--card-bg);
+            background: #FAFAFA;
+            outline: none;
         }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); background: #FFF; }
         
         .ai-search-box {
-            background: #F0F4F8;
-            border: 1px solid #CBD5E1;
-            padding: 14px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: rgba(90,24,39,0.03);
+            border: 1px solid rgba(90,24,39,0.1);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
         }
         .ai-search-box label {
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: #1E3A8A;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
             display: block;
             margin-bottom: 6px;
         }
@@ -540,49 +571,49 @@
         }
         .ai-input-row input {
             flex: 1;
-            padding: 10px;
+            padding: 9px 12px;
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 8px;
             font-family: inherit;
             background: #FFF;
         }
         .btn-ai {
-            background: #2563EB;
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            font-weight: bold;
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             white-space: nowrap;
         }
-        .btn-ai:hover { background: #1D4ED8; }
 
         .modal-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
+            gap: 8px;
             margin-top: 20px;
-            padding-top: 15px;
+            padding-top: 14px;
             border-top: 1px solid var(--border);
         }
         .btn-cancel {
             background: transparent;
-            border: 1px solid var(--text-light);
+            border: 1px solid var(--border);
             color: var(--text-light);
-            padding: 10px 15px;
-            border-radius: 6px;
+            padding: 9px 14px;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
         }
         .btn-save {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 9px 18px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
         }
         .loading {
             text-align: center;
@@ -595,16 +626,16 @@
 <body>
 
     <header>
-        <span class="version-tag">v3.7</span>
+        <span class="version-tag">v3.8</span>
         <h1>Cantina di Casa Schelling</h1>
         <div class="subtitle">Wijnkelder van Thijs</div>
     </header>
 
     <!-- 3 Tabbladen -->
     <div class="tab-nav">
-        <button class="tab-btn active" id="tab-home" onclick="switchTab('home')">🏠 Home</button>
-        <button class="tab-btn" id="tab-cellar" onclick="switchTab('cellar')">🍷 Wijnkelder</button>
-        <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">📜 Proefnotities</button>
+        <button class="tab-btn active" id="tab-home" onclick="switchTab('home')">Home</button>
+        <button class="tab-btn" id="tab-cellar" onclick="switchTab('cellar')">Wijnkelder</button>
+        <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">Proefnotities</button>
     </div>
 
     <!-- HOME TABBLAD -->
@@ -625,35 +656,35 @@
         </div>
 
         <div style="margin-bottom: 20px;">
-            <button class="btn-add" style="width: 100%; padding: 14px; font-size: 1rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
+            <button class="btn-add" style="width: 100%; padding: 14px; font-size: 0.95rem;" onclick="openModal()">+ Nieuwe Wijn Toevoegen</button>
         </div>
 
         <!-- Rood / Wit / Mousserend Verdelingsblokken -->
         <div class="dash-card" style="margin-bottom: 20px;">
-            <div class="dash-title">📊 Verdeling Wijnsoorten</div>
+            <div class="dash-title">Verdeling Wijnsoorten</div>
             <div id="home-type-bars"></div>
         </div>
 
         <div class="dashboard-section">
             <div class="dash-card">
-                <div class="dash-title">⭐ Top 3 Wijnen</div>
+                <div class="dash-title">Top 3 Wijnen</div>
                 <div id="home-top-wines"></div>
             </div>
             <div class="dash-card">
-                <div class="dash-title">⚠️ Bocht (Vivino &lt; 3.5)</div>
+                <div class="dash-title">Bocht (Vivino &lt; 3.5)</div>
                 <div id="home-bocht-wines"></div>
             </div>
         </div>
 
         <!-- Wereldkaart -->
         <div class="map-card">
-            <div class="dash-title">🌍 Wijnregio's op de Wereldkaart</div>
+            <div class="dash-title">Wijnregio's op de Kaart</div>
             <div id="wineMap"></div>
         </div>
 
         <!-- Waarde Evolutie Grafiek -->
         <div class="chart-card">
-            <div class="dash-title">📈 Waardeontwikkeling Kelder (€)</div>
+            <div class="dash-title">Waardeontwikkeling Kelder (€)</div>
             <div style="position: relative; height: 220px; width: 100%;">
                 <canvas id="valueChart"></canvas>
             </div>
@@ -661,14 +692,14 @@
 
         <!-- Backup & Gegevensbeheer -->
         <div class="dash-card" style="margin-bottom: 20px;">
-            <div class="dash-title">📦 Backup & Gegevensbeheer</div>
-            <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px;">
+            <div class="dash-title">Backup & Gegevensbeheer</div>
+            <div style="font-size: 0.82rem; color: var(--text-light); margin-bottom: 10px;">
                 Exporteer je database voor review of importeer een eerdere backup.
             </div>
             <div class="backup-btn-row">
-                <button class="btn-backup" onclick="exportJSON()">📥 Exporteer JSON</button>
-                <button class="btn-backup" onclick="exportCSV()">📊 Exporteer Excel (CSV)</button>
-                <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">📤 Importeer JSON</button>
+                <button class="btn-backup" onclick="exportJSON()">Exporteer JSON</button>
+                <button class="btn-backup" onclick="exportCSV()">Exporteer Excel</button>
+                <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">Importeer JSON</button>
             </div>
             <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importJSON(event)">
         </div>
@@ -679,7 +710,7 @@
         <!-- Compacte Filterblokken (horizontaal scrolbaar) -->
         <div class="filter-section-card">
             <div class="filter-section-title">
-                <span>🍇 Type Wijn</span>
+                <span>Type Wijn</span>
                 <span style="font-size: 0.7rem; color: var(--text-light); cursor: pointer;" onclick="setFilter('ALL')">Reset</span>
             </div>
             <div class="filter-blocks-row">
@@ -707,7 +738,7 @@
         </div>
 
         <div class="filter-section-card">
-            <div class="filter-section-title"><span>🍷 Drinkstatus</span></div>
+            <div class="filter-section-title"><span>Drinkstatus</span></div>
             <div class="filter-blocks-row">
                 <div class="filter-block-item" id="fblock-NU" onclick="setFilter('NU')">
                     <div class="f-block-label">Op Dronk</div>
@@ -727,7 +758,7 @@
         <!-- Rijpingskalender als horizontale balk -->
         <div class="filter-section-card">
             <div class="filter-section-title">
-                <span>📅 Rijpingskalender (Piekjaar)</span>
+                <span>Rijpingskalender (Piekjaar)</span>
             </div>
             <div class="filter-blocks-row" id="cellar-timeline-bars"></div>
         </div>
@@ -757,9 +788,9 @@
             <h2 id="modal-title">Nieuwe wijn toevoegen</h2>
             
             <div class="ai-search-box">
-                <label>🤖 Vraag aan AI (vrije invoer)</label>
+                <label>Vraag aan AI (vrije invoer)</label>
                 <div class="ai-input-row">
-                    <input type="text" id="ai-query-input" placeholder="Bijv. Barolo Prunotto 2018 of Chileense Carmenere">
+                    <input type="text" id="ai-query-input" placeholder="Bijv. Barolo Prunotto 2018">
                     <button type="button" class="btn-ai" id="btn-ai-search" onclick="askGeminiAI()">Vul velden in</button>
                 </div>
             </div>
@@ -921,7 +952,6 @@
             'limburg': { lat: 50.84, lng: 5.68, name: 'Limburg' }
         };
 
-        // Export & Import functies
         function exportJSON() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localWines, null, 2));
             const downloadAnchor = document.createElement('a');
@@ -1160,7 +1190,7 @@
             } else if (currentYear <= endYear) {
                 return { code: "NU", text: "Op Dronk", class: "status-nu" };
             } else {
-                return { code: "VERLEDEN", text: "Piek voorbij (Nu drinken)", class: "status-verleden" };
+                return { code: "VERLEDEN", text: "Piek voorbij", class: "status-verleden" };
             }
         }
 
@@ -1317,8 +1347,12 @@
             currentFilter = filter;
             
             document.querySelectorAll('.filter-block-item').forEach(el => el.classList.remove('active'));
-            const activeEl = document.getElementById('fblock-' + filter);
-            if (activeEl) activeEl.classList.add('active');
+            
+            // Check direct op ID of flexibele selector
+            const activeEl = document.getElementById('fblock-' + filter) || document.getElementById('fblock-PEAK_' + filter.replace('PEAK_', ''));
+            if (activeEl) {
+                activeEl.classList.add('active');
+            }
 
             renderCellar();
         }
@@ -1388,7 +1422,7 @@
                     bochtContainer.innerHTML += `
                         <div class="top-wine-item" onclick="showWineInfo(${w.id})" style="cursor:pointer;">
                             <div class="top-wine-name">${w.name} ${w.vintage || ''}</div>
-                            <div><strong style="color: #A63A50;">★ ${w.vivino}</strong></div>
+                            <div><strong style="color: var(--primary);">★ ${w.vivino}</strong></div>
                         </div>
                     `;
                 });
@@ -1426,8 +1460,8 @@
                 
                 const marker = L.circleMarker([info.lat, info.lng], {
                     radius: Math.min(7 + count * 2, 22),
-                    fillColor: "#722F37",
-                    color: "#FAF7F2",
+                    fillColor: "#5A1827",
+                    color: "#F5F2EB",
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 0.85
@@ -1461,8 +1495,8 @@
                     datasets: [{
                         label: 'Kelderwaarde (€)',
                         data: historyData.data,
-                        borderColor: '#722F37',
-                        backgroundColor: 'rgba(114, 47, 55, 0.05)',
+                        borderColor: '#5A1827',
+                        backgroundColor: 'rgba(90, 24, 39, 0.04)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.2
@@ -1473,8 +1507,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { ticks: { font: { family: 'Lato' } } },
-                        x: { ticks: { font: { family: 'Lato' }, maxRotation: 45, minRotation: 45 } }
+                        y: { ticks: { font: { family: 'Plus Jakarta Sans' } } },
+                        x: { ticks: { font: { family: 'Plus Jakarta Sans' }, maxRotation: 45, minRotation: 45 } }
                     }
                 }
             });
@@ -1487,7 +1521,6 @@
 
             let activeWines = localWines.filter(w => w.qty > 0);
 
-            // Rijpingskalender horizontaal opbouwen
             const peakCounts = {};
             activeWines.forEach(w => {
                 const p = w.peak || new Date().getFullYear();
@@ -1579,7 +1612,7 @@
                             </div>
 
                             <div class="rating-notes-box">
-                                <span class="lbl" style="color: var(--text-light); font-size: 0.7rem; text-transform: uppercase;">Beoordeling & Proefnotitie</span>
+                                <span class="lbl" style="color: var(--text-light); font-size: 0.65rem; text-transform: uppercase;">Beoordeling & Proefnotitie</span>
                                 <div class="star-rating">${starsHtml}</div>
                                 <textarea class="notes-input" placeholder="Voeg proefnotities of spijscombinaties toe..." onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
                             </div>
@@ -1590,7 +1623,7 @@
                                     <button class="btn-edit-small" onclick="openModal(${w.id})">Bewerk</button>
                                     <div class="qty-box">
                                         <button class="btn-qty" onclick="changeQty(${w.id}, -1)">-</button>
-                                        <span style="font-size: 1.2rem; font-weight: bold;">${w.qty}</span>
+                                        <span style="font-size: 1.1rem; font-weight: 600;">${w.qty}</span>
                                         <button class="btn-qty" onclick="changeQty(${w.id}, 1)">+</button>
                                     </div>
                                 </div>
@@ -1636,7 +1669,7 @@
                         <div class="wine-sub">${w.producer || 'Onbekende producent'} – ${w.region || ''}</div>
 
                         <div class="rating-notes-box">
-                            <span class="lbl" style="color: var(--text-light); font-size: 0.7rem; text-transform: uppercase;">Persoonlijke Score & Proefnotitie</span>
+                            <span class="lbl" style="color: var(--text-light); font-size: 0.65rem; text-transform: uppercase;">Persoonlijke Score & Proefnotitie</span>
                             <div class="star-rating">${starsHtml}</div>
                             <textarea class="notes-input" placeholder="Schrijf hier je proefnotitie..." onchange="updateNotes(${w.id}, this.value)">${w.notes || ''}</textarea>
                         </div>
